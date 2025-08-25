@@ -44,30 +44,29 @@ describe('OFA Gateway', () => {
       const gateway = new OFAGateway(4000);
       
       const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
+        version: '1.0.0',
         intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
+        derivatives: {
+          collateral: {
+            chain: 'arbitrum',
+            token: 'USDC'
+          },
+          constraints: {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: ['gmx-v2']
+          },
           instrument: 'perp',
-          symbol: 'ETH-USD',
+          leverage: '5',
+          option: null,
           side: 'long',
           size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 10,
-          max_funding_bps_8h: 20,
-          max_fee_bps: 5,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
+          symbol: 'ETH-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        nonce: '1'
       };
 
       const req = {
@@ -131,30 +130,29 @@ describe('OFA Gateway', () => {
       const gateway = new OFAGateway(4000);
       
       const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
+        version: '1.0.0',
         intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
+        derivatives: {
+          collateral: {
+            chain: 'arbitrum',
+            token: 'USDC'
+          },
+          constraints: {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: ['gmx-v2']
+          },
           instrument: 'perp',
-          symbol: 'ETH-USD',
+          leverage: '5',
+          option: null,
           side: 'long',
           size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 10,
-          max_funding_bps_8h: 20,
-          max_fee_bps: 5,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
+          symbol: 'ETH-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        nonce: '1'
       };
 
       const req = {
@@ -253,12 +251,16 @@ describe('OFA Gateway', () => {
       const quote: QuoteResponse = {
         solver_id: solverId,
         intent_hash: intentHash,
-        price: '3500',
-        estimated_funding_bps: 10,
-        fees_bps: 5,
-        estimated_slippage_bps: 3,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3500',
+          size: '1.5',
+          fee: '5',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       gateway['handleSolverQuote'](solverId, quote);
@@ -275,30 +277,29 @@ describe('OFA Gateway', () => {
       const intentHash = 'hash123';
       
       const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
+        version: '1.0.0',
         intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
+        derivatives: {
+          collateral: {
+            chain: 'arbitrum',
+            token: 'USDC'
+          },
+          constraints: {
+            max_fee_bps: 100,
+            max_funding_bps_8h: 100,
+            max_slippage_bps: 100,
+            venue_allowlist: ['gmx-v2']
+          },
           instrument: 'perp',
-          symbol: 'ETH-USD',
+          leverage: '5',
+          option: null,
           side: 'long',
           size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 100,
-          max_funding_bps_8h: 100,
-          max_fee_bps: 100,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
+          symbol: 'ETH-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        nonce: '1'
       };
 
       const pendingIntent = {
@@ -312,23 +313,31 @@ describe('OFA Gateway', () => {
       const quote1: QuoteResponse = {
         solver_id: 'solver-1',
         intent_hash: intentHash,
-        price: '3500',
-        estimated_funding_bps: 10,
-        fees_bps: 5,
-        estimated_slippage_bps: 3,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3500',
+          size: '1.5',
+          fee: '5',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       const quote2: QuoteResponse = {
         solver_id: 'solver-2',
         intent_hash: intentHash,
-        price: '3480',
-        estimated_funding_bps: 15,
-        fees_bps: 8,
-        estimated_slippage_bps: 5,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3480',
+          size: '1.5',
+          fee: '3',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       pendingIntent.quotes.set('solver-1', quote1);
@@ -346,30 +355,29 @@ describe('OFA Gateway', () => {
       const intentHash = 'hash123';
       
       const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
+        version: '1.0.0',
         intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
+        derivatives: {
+          collateral: {
+            chain: 'arbitrum',
+            token: 'USDC'
+          },
+          constraints: {
+            max_fee_bps: 3,
+            max_funding_bps_8h: 10,
+            max_slippage_bps: 5,
+            venue_allowlist: ['gmx-v2']
+          },
           instrument: 'perp',
-          symbol: 'ETH-USD',
+          leverage: '5',
+          option: null,
           side: 'long',
           size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 5,
-          max_funding_bps_8h: 10,
-          max_fee_bps: 3,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
+          symbol: 'ETH-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        nonce: '1'
       };
 
       const pendingIntent = {
@@ -383,23 +391,31 @@ describe('OFA Gateway', () => {
       const goodQuote: QuoteResponse = {
         solver_id: 'solver-1',
         intent_hash: intentHash,
-        price: '3500',
-        estimated_funding_bps: 8,
-        fees_bps: 2,
-        estimated_slippage_bps: 3,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3500',
+          size: '1.5',
+          fee: '2',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       const badQuote: QuoteResponse = {
         solver_id: 'solver-2',
         intent_hash: intentHash,
-        price: '3480',
-        estimated_funding_bps: 15,
-        fees_bps: 8,
-        estimated_slippage_bps: 10,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3480',
+          size: '1.5',
+          fee: '8',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       pendingIntent.quotes.set('solver-1', goodQuote);
@@ -416,30 +432,29 @@ describe('OFA Gateway', () => {
       const intentHash = 'hash123';
       
       const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
+        version: '1.0.0',
         intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
+        derivatives: {
+          collateral: {
+            chain: 'arbitrum',
+            token: 'USDC'
+          },
+          constraints: {
+            max_fee_bps: 1,
+            max_funding_bps_8h: 1,
+            max_slippage_bps: 1,
+            venue_allowlist: ['gmx-v2']
+          },
           instrument: 'perp',
-          symbol: 'ETH-USD',
+          leverage: '5',
+          option: null,
           side: 'long',
           size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 1,
-          max_funding_bps_8h: 1,
-          max_fee_bps: 1,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
+          symbol: 'ETH-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+        nonce: '1'
       };
 
       const pendingIntent = {
@@ -453,12 +468,16 @@ describe('OFA Gateway', () => {
       const badQuote: QuoteResponse = {
         solver_id: 'solver-1',
         intent_hash: intentHash,
-        price: '3500',
-        estimated_funding_bps: 100,
-        fees_bps: 100,
-        estimated_slippage_bps: 100,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        quote: {
+          price: '3500',
+          size: '1.5',
+          fee: '100',
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: 'gmx-v2',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: new Date().toISOString()
       };
 
       pendingIntent.quotes.set('solver-1', badQuote);
@@ -491,12 +510,11 @@ describe('OFA Gateway', () => {
       const result: ExecutionResult = {
         intent_hash: intentHash,
         solver_id: solverId,
+        execution_id: 'exec-123',
+        status: 'accepted',
+        estimated_completion: new Date(Date.now() + 30000).toISOString(),
         venue: 'gmx-v2',
-        fill_price: '3505',
-        notional: '5257.50',
-        fees_bps: 5,
-        pnl: '50',
-        status: 'filled',
+        chain: 'arbitrum'
       };
 
       gateway['handleExecutionResult'](solverId, result);
@@ -523,12 +541,11 @@ describe('OFA Gateway', () => {
       const result: ExecutionResult = {
         intent_hash: intentHash,
         solver_id: solverId,
+        execution_id: 'exec-456',
+        status: 'rejected',
+        estimated_completion: new Date(Date.now() + 30000).toISOString(),
         venue: 'gmx-v2',
-        fill_price: '0',
-        notional: '0',
-        fees_bps: 0,
-        pnl: '0',
-        status: 'failed',
+        chain: 'arbitrum'
       };
 
       gateway['handleExecutionResult'](solverId, result);

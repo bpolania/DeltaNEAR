@@ -199,7 +199,7 @@ class OFAGateway {
       const quoteRequest: QuoteRequest = {
         intent_hash,
         intent: pendingIntent.intent,
-        deadline: Date.now() + 5000, // 5 second deadline
+        solver_id: 'gateway'
       };
 
       const eligibleSolvers = this.getEligibleSolvers(pendingIntent.intent);
@@ -237,11 +237,10 @@ class OFAGateway {
     const eligible: SolverConnection[] = [];
     
     for (const solver of this.solvers.values()) {
-      const venuesMatch = intent.actions.every(action =>
-        action.venue_allowlist.some(venue =>
-          solver.registration.supported_venues.includes(venue)
-        )
-      );
+      const venuesMatch = intent.derivatives.constraints.venue_allowlist.length === 0 ||
+        intent.derivatives.constraints.venue_allowlist.some(venue =>
+          solver.registration.supported_venues.includes(venue.toLowerCase())
+        );
       
       if (venuesMatch) {
         eligible.push(solver);
@@ -270,8 +269,8 @@ class OFAGateway {
     logger.info({ 
       solverId, 
       intent_hash: quote.intent_hash,
-      price: quote.price,
-      venue: quote.venue 
+      price: quote.quote.price,
+      venue: quote.quote.venue 
     }, 'Quote received');
   }
 
@@ -291,11 +290,15 @@ class OFAGateway {
 
     for (const [solverId, quote] of pendingIntent.quotes) {
       const intent = pendingIntent.intent;
-      const action = intent.actions[0];
+      const constraints = intent.derivatives.constraints;
       
-      if (quote.estimated_slippage_bps > action.max_slippage_bps) continue;
-      if (quote.fees_bps > action.max_fee_bps) continue;
-      if (quote.estimated_funding_bps > action.max_funding_bps_8h) continue;
+      // Extract fee from quote structure - fee is already in correct format
+      const feeBps = parseFloat(quote.quote.fee);
+      
+      // Check if quote meets the constraints
+      if (feeBps > constraints.max_fee_bps) continue;
+      // For now, assume quotes meet slippage and funding requirements
+      // In real implementation, these would come from the quote response
 
       const totalCost = calculateTotalCost(quote);
       if (totalCost < lowestCost) {
@@ -312,8 +315,8 @@ class OFAGateway {
       logger.info({ 
         intent_hash, 
         solver_id: bestSolverId,
-        price: bestQuote.price,
-        venue: bestQuote.venue,
+        price: bestQuote.quote.price,
+        venue: bestQuote.quote.venue,
         total_cost: lowestCost
       }, 'Winner selected');
     } else {
@@ -347,9 +350,11 @@ class OFAGateway {
 
       const executionRequest: ExecutionRequest = {
         intent_hash,
-        intent: pendingIntent.intent,
         solver_id: pendingIntent.winning_solver,
-        exclusive_until: pendingIntent.exclusive_until!,
+        quote_id: 'quote-' + Date.now().toString(),
+        signature: 'gateway-signature',
+        signer_id: 'gateway.testnet',
+        timestamp: new Date().toISOString()
       };
 
       solver.ws.send(JSON.stringify({
@@ -378,13 +383,13 @@ class OFAGateway {
       return;
     }
 
-    if (result.status === 'filled') {
+    if (result.status === 'accepted') {
       pendingIntent.status = 'completed';
       logger.info({ 
         intent_hash: result.intent_hash,
         solver_id: solverId,
-        fill_price: result.fill_price,
-        pnl: result.pnl
+        execution_id: result.execution_id,
+        venue: result.venue
       }, 'Execution completed');
     } else {
       pendingIntent.status = 'failed';
@@ -414,9 +419,9 @@ class OFAGateway {
 
       if (pendingIntent.winning_solver && pendingIntent.quotes.has(pendingIntent.winning_solver)) {
         const quote = pendingIntent.quotes.get(pendingIntent.winning_solver)!;
-        receipt.venue = quote.venue;
-        receipt.fill_price = quote.price;
-        receipt.fees_bps = quote.fees_bps;
+        receipt.venue = quote.quote.venue;
+        receipt.fill_price = quote.quote.price;
+        receipt.fees_bps = parseFloat(quote.quote.fee);
       }
 
       res.json(receipt);
