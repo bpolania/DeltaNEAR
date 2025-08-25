@@ -2,14 +2,14 @@
 
 A production-ready implementation combining NEAR Intents with cross-chain execution for perpetuals and options trading through a competitive solver network. 
 
-## 📚 Documentation
+## Documentation
 
 For comprehensive documentation, see the [docs folder](./docs/):
 - [Documentation Index](./docs/INDEX.md) - Complete documentation overview
-- [Architecture Update](./docs/ARCHITECTURE_UPDATE.md) - System architecture details
 - [Derivatives Intent Schema v1.0.0](./docs/DERIVATIVES_INTENT_SCHEMA_V1.md) - Canonical schema specification
 - [Metadata Contract v1.0.0](./docs/METADATA_CONTRACT_V1.md) - Contract interface documentation
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Step-by-step deployment instructions
+- [Canonicalization Spec v1.0.0](./docs/CANONICALIZATION_SPEC_V1.md) - Deterministic canonicalization
+- [ABI Stability v1.0.0](./docs/ABI_STABILITY_V1.md) - Frozen ABI specification
 
 ## Key Architecture Principles
 
@@ -188,7 +188,7 @@ pnpm run demo:option
 Our settlement MUST match the Verifier's strict requirements:
 
 ```typescript
-// ✅ CORRECT TokenDiff for P&L settlement
+// CORRECT TokenDiff for P&L settlement
 const settlementIntent = {
   intent: 'token_diff',  // Exact string required
   diff: {
@@ -545,10 +545,10 @@ await verifier.execute_intents({ intents: [signedIntent] });
 - **Mainnet**: `intents.near`
 - **Testnet**: `intents.testnet`
 - **Responsibilities**:
-  - ✅ ALL signature verification (NEP-413)
-  - ✅ ALL token transfers and custody
-  - ✅ ALL settlement accounting
-  - ✅ Atomic execution guarantees
+  - ALL signature verification (NEP-413)
+  - ALL token transfers and custody
+  - ALL settlement accounting
+  - Atomic execution guarantees
 - **Key Methods**:
   - `deposit()` - Pre-deposit tokens (REQUIRED before execution)
   - `simulate_intents()` - Dry-run to validate schema (ALWAYS use first)

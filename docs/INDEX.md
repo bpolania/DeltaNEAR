@@ -2,16 +2,11 @@
 
 ## Core Documentation
 
-### Architecture & Design
-- [Architecture Update](./ARCHITECTURE_UPDATE.md) - Current system architecture with NEAR infrastructure
-- [Implementation Corrections](./IMPLEMENTATION_CORRECTIONS.md) - Key corrections and clarifications about NEAR components
-
 ### Specifications
 - [Derivatives Intent Schema v1.0.0](./DERIVATIVES_INTENT_SCHEMA_V1.md) - Canonical schema for derivatives intents
 - [Metadata Contract v1.0.0](./METADATA_CONTRACT_V1.md) - Stable public contract interface
-
-### Operations
-- [Deployment Guide](./DEPLOYMENT.md) - Step-by-step deployment instructions
+- [Canonicalization Spec v1.0.0](./CANONICALIZATION_SPEC_V1.md) - Deterministic canonicalization specification
+- [ABI Stability v1.0.0](./ABI_STABILITY_V1.md) - Frozen ABI specification
 
 ## Quick Links
 
@@ -36,11 +31,10 @@
 ```
 docs/
 ├── INDEX.md                           # This file
-├── ARCHITECTURE_UPDATE.md             # System architecture
 ├── DERIVATIVES_INTENT_SCHEMA_V1.md    # Intent schema specification
 ├── METADATA_CONTRACT_V1.md            # Contract interface docs
-├── IMPLEMENTATION_CORRECTIONS.md      # Important corrections
-└── DEPLOYMENT.md                      # Deployment guide
+├── CANONICALIZATION_SPEC_V1.md        # Canonicalization specification
+└── ABI_STABILITY_V1.md                # Frozen ABI specification
 ```
 
 ## Version History
@@ -60,10 +54,10 @@ docs/
 
 ## Getting Started
 
-1. Review the [Architecture Update](./ARCHITECTURE_UPDATE.md) to understand the system
-2. Read the [Derivatives Intent Schema](./DERIVATIVES_INTENT_SCHEMA_V1.md) for the canonical specification
-3. Check [Implementation Corrections](./IMPLEMENTATION_CORRECTIONS.md) for important clarifications
-4. Follow the [Deployment Guide](./DEPLOYMENT.md) to deploy the system
+1. Read the [Derivatives Intent Schema](./DERIVATIVES_INTENT_SCHEMA_V1.md) for the canonical specification
+2. Review the [Metadata Contract](./METADATA_CONTRACT_V1.md) interface documentation
+3. Understand the [Canonicalization Spec](./CANONICALIZATION_SPEC_V1.md) for deterministic hashing
+4. Check the [ABI Stability](./ABI_STABILITY_V1.md) specification for frozen methods
 
 ## API References
 

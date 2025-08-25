@@ -1,10 +1,10 @@
 # DeltaNEAR v1.0.0 Release
 
-## 🎉 Production-Ready Milestone Achieved
+## Production-Ready Milestone Achieved
 
 DeltaNEAR v1.0.0 represents the first production-ready release of the NEAR Intents derivatives execution system, successfully addressing all critical gaps identified for the "testnet-locked" milestone.
 
-## ✅ Key Achievements
+## Key Achievements
 
 ### 1. **Frozen ABI & Manifest (v1.0.0)**
 - Single canonical manifest hash: `4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc`
@@ -39,21 +39,21 @@ DeltaNEAR v1.0.0 represents the first production-ready release of the NEAR Inten
 - Cross-chain settlement verification
 - Integration test coverage
 
-## 📊 Test Results
+## Test Results
 ```
 Test Suites: 10 passed, 10 total
 Tests:       130 passed, 1 skipped, 131 total
 Time:        ~58 seconds
 ```
 
-## 🔒 Security Features
+## Security Features
 - NEP-413 replay protection
 - Deterministic canonicalization (RFC 8785)
 - Off-chain simulation requirement
 - Metadata integrity verification
 - Clock skew protection
 
-## 📁 Release Artifacts
+## Release Artifacts
 
 ### Core Components
 - **Smart Contract**: `contracts/near-intents-derivatives/`
@@ -92,7 +92,7 @@ scripts/
 └── test-1click-integration.sh (NEW)
 ```
 
-## 🚀 Deployment Instructions
+## Deployment Instructions
 
 ### 1. Bootstrap Testnet
 ```bash
@@ -109,7 +109,7 @@ scripts/
 ./scripts/test-1click-integration.sh
 ```
 
-## 📝 Frozen View Methods
+## Frozen View Methods
 All view methods are frozen at v1.0.0 and will not change:
 - `get_schema_version()` → "1.0.0"
 - `get_manifest_hash()` → Canonical manifest hash
@@ -119,7 +119,7 @@ All view methods are frozen at v1.0.0 and will not change:
 - `get_guardrails()` → Risk parameters
 - `verify_intent_hash()` → Intent validation
 
-## 🔗 Integration Points
+## Integration Points
 
 ### 1Click API
 - Endpoint: `https://1click.chaindefuser.com`
@@ -136,7 +136,7 @@ All view methods are frozen at v1.0.0 and will not change:
 - Cross-chain execution support
 - Solana, Ethereum, Polygon ready
 
-## 📊 Supported Derivatives
+## Supported Derivatives
 
 ### Instruments
 - Perpetual futures (perp)
@@ -157,7 +157,7 @@ All view methods are frozen at v1.0.0 and will not change:
 - Aevo (Ethereum)
 - Vertex (Arbitrum)
 
-## 🔄 Next Steps
+## Next Steps
 
 1. **Register with 1Click**: Complete registration at https://1click.chaindefuser.com/docs
 2. **Deploy to Testnet**: Use provided scripts for deployment
@@ -165,25 +165,25 @@ All view methods are frozen at v1.0.0 and will not change:
 4. **Monitor Events**: Track NEP-297 events for execution status
 5. **Integration Testing**: Run full end-to-end tests on testnet
 
-## 📚 Documentation
+## Documentation
 - Manifest Specification: `contracts/manifest-v1.0.0.json`
 - Integration Guide: See test files in `services/solver-node/src/tests/`
 - Bootstrap Guide: `scripts/bootstrap-testnet.sh`
 
-## 🏆 Milestone Achievement
+## Milestone Achievement
 This release successfully completes all requirements for the **"testnet-locked"** milestone:
-- ✅ Frozen ABI with single manifest hash
-- ✅ Off-chain simulation gating
-- ✅ Real 1Click API integration
-- ✅ Metadata preservation proof
-- ✅ Cross-chain venue integration
-- ✅ Comprehensive test coverage
-- ✅ Production-ready deployment scripts
+- Frozen ABI with single manifest hash
+- Off-chain simulation gating
+- Real 1Click API integration
+- Metadata preservation proof
+- Cross-chain venue integration
+- Comprehensive test coverage
+- Production-ready deployment scripts
 
-## 📅 Release Date
+## Release Date
 January 25, 2025
 
-## 🔖 Version
+## Version
 v1.0.0
 
 ---

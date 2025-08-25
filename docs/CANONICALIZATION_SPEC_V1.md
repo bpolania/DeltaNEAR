@@ -97,10 +97,10 @@ Rules:
 ```
 
 Examples:
-- ✅ `2024-01-23T11:00:00Z`
-- ❌ `2024-01-23T11:00:00.000Z` (has milliseconds)
-- ❌ `2024-01-23T11:00:00+00:00` (has offset)
-- ❌ `2024-1-23T11:00:00Z` (not zero-padded)
+- VALID: `2024-01-23T11:00:00Z`
+- INVALID: `2024-01-23T11:00:00.000Z` (has milliseconds)
+- INVALID: `2024-01-23T11:00:00+00:00` (has offset)
+- INVALID: `2024-1-23T11:00:00Z` (not zero-padded)
 
 ### Array Canonicalization
 
