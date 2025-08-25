@@ -16,6 +16,11 @@ sha2 = "0.10"
 hex = "0.4"
 schemars = "0.8"
 
+[dev-dependencies]
+near-sdk = { version = "5.2.0", features = ["unit-testing"] }
+tokio = "1.24"
+proptest = "1.0"
+
 [profile.release]
 codegen-units = 1
 opt-level = "z"
