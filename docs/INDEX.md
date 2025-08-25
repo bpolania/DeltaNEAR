@@ -2,11 +2,9 @@
 
 ## Core Documentation
 
-### Specifications
-- [Derivatives Intent Schema v1.0.0](./DERIVATIVES_INTENT_SCHEMA_V1.md) - Canonical schema for derivatives intents
-- [Metadata Contract v1.0.0](./METADATA_CONTRACT_V1.md) - Stable public contract interface
-- [Canonicalization Spec v1.0.0](./CANONICALIZATION_SPEC_V1.md) - Deterministic canonicalization specification
-- [ABI Stability v1.0.0](./ABI_STABILITY_V1.md) - Frozen ABI specification
+### Current Specification (V2.0.0)
+- [V2.0.0 Specification](./V2_SPECIFICATION_FREEZE.md) - Current frozen specification and breaking changes
+- [Migration Guide V1 to V2](./MIGRATION_V1_TO_V2.md) - Guide for migrating from V1.0.0 to V2.0.0
 
 ## Quick Links
 
