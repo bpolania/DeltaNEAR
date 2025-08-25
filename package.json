@@ -25,11 +25,14 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "@jest/globals": "^30.0.0",
     "@near-js/accounts": "^2.2.5",
     "@near-js/keystores-node": "^2.2.5",
     "@near-js/providers": "^2.2.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "axios": "^1.6.0",
     "commander": "^14.0.0",
     "dotenv": "^16.6.1",
     "jest": "^30.0.5",
@@ -37,10 +40,14 @@
     "near-workspaces": "^5.0.0",
     "nyc": "^17.1.0",
     "ts-jest": "^29.4.1",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "ws": "^8.14.0"
   },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@deltanear/proto": "link:proto"
   }
 }

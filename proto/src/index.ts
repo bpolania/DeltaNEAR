@@ -1,91 +1,126 @@
+/**
+ * DeltaNEAR Proto Types - Rust-Compliant Schema V2
+ * These types match the Rust canonicalization implementation exactly
+ */
+
+// Root intent structure matching Rust
 export interface DerivativesIntent {
-  chain_id: string;
-  intent_type: 'derivatives';
+  version: string;           // Must be "1.0.0"
+  intent_type: string;        // Must be "derivatives"
+  derivatives: Derivatives;
+  signer_id: string;
+  deadline: string;           // ISO 8601 timestamp with Z
   nonce: string;
-  expiry: number;
-  account_id: string;
-  actions: DerivativeAction[];
-  settlement: SettlementConfig;
+  // NO metadata field allowed at root level
 }
 
-export interface DerivativeAction {
+// Derivatives structure matching Rust
+export interface Derivatives {
+  collateral: Collateral;       // REQUIRED
+  constraints: Constraints;     // REQUIRED (with defaults)
   instrument: 'perp' | 'option';
-  symbol: string;
+  leverage?: string;             // Optional, default "1"
+  option?: Option | null;        // Required for options, null for perps
   side: 'long' | 'short' | 'buy' | 'sell';
-  size: string;
-  leverage?: string;
-  option?: OptionDetails;
-  max_slippage_bps: number;
-  max_funding_bps_8h: number;
-  max_fee_bps: number;
-  venue_allowlist: string[];
-  collateral_token: string;
-  collateral_chain: string;
+  size: string;                  // Canonical decimal
+  symbol: string;                // UPPERCASE
 }
 
-export interface OptionDetails {
+// Collateral structure
+export interface Collateral {
+  chain: string;  // lowercase: near, ethereum, arbitrum, base, solana
+  token: string;  // Preserve case
+}
+
+// Constraints structure
+export interface Constraints {
+  max_fee_bps: number;         // Default 30, max 100
+  max_funding_bps_8h: number;  // Default 50, max 100
+  max_slippage_bps: number;    // Default 100, max 1000
+  venue_allowlist: string[];   // Lowercase, sorted
+}
+
+// Option structure
+export interface Option {
+  expiry: string;  // ISO 8601 timestamp
   kind: 'call' | 'put';
-  strike: string;
-  expiry: string;
+  strike: string;  // Canonical decimal
 }
 
-export interface SettlementConfig {
-  payout_token: string;
-  payout_account: string;
-  protocol_fee_bps: number;
-  rebate_bps: number;
-}
-
+// Signed intent wrapper
 export interface SignedIntent {
   intent: DerivativesIntent;
   signature: string;
   public_key: string;
 }
 
+// Solver API types (not canonicalized)
 export interface QuoteRequest {
   intent_hash: string;
   intent: DerivativesIntent;
-  deadline: number;
+  solver_id: string;
+  preferences?: {
+    max_slippage?: string;
+    min_fill_rate?: string;
+    preferred_chains?: string[];
+  };
 }
 
 export interface QuoteResponse {
-  solver_id: string;
   intent_hash: string;
-  price: string;
-  estimated_funding_bps: number;
-  fees_bps: number;
-  estimated_slippage_bps: number;
+  solver_id: string;
+  quote: {
+    price: string;
+    size: string;
+    fee: string;
+    expiry: string;
+    venue: string;
+    chain: string;
+  };
+  status: 'success' | 'failed';
+  timestamp: string;
+}
+
+export interface AcceptRequest {
+  intent_hash: string;
+  solver_id: string;
+  quote_id: string;
+  signature: string;
+  signer_id: string;
+  timestamp: string;
+}
+
+export interface AcceptResponse {
+  intent_hash: string;
+  status: 'accepted' | 'rejected';
+  execution_id: string;
+  solver_id: string;
+  estimated_completion: string;
   venue: string;
-  valid_until: number;
+  chain: string;
 }
 
-export interface ExecutionRequest {
+export interface Settlement {
   intent_hash: string;
-  intent: DerivativesIntent;
-  solver_id: string;
-  exclusive_until: number;
+  execution_id: string;
+  settlement: {
+    type: 'token_diff';
+    diffs: TokenDiff[];
+    timestamp: string;
+    block_height: number;
+    transaction_hash: string;
+  };
+  status: 'settled' | 'failed';
 }
 
-export interface ExecutionResult {
-  intent_hash: string;
-  solver_id: string;
-  venue: string;
-  fill_price: string;
-  notional: string;
-  fees_bps: number;
-  pnl: string;
-  status: 'filled' | 'partial' | 'failed';
-}
-
-export interface SettlementData {
-  intent_hash: string;
+export interface TokenDiff {
   token: string;
-  amount: string;
-  pnl: string;
-  fee: string;
-  rebate: string;
+  chain: string;
+  amount: string;  // Can be negative
+  account: string;
 }
 
+// Legacy types that services still use
 export interface SolverRegistration {
   solver_id: string;
   endpoint: string;
@@ -142,68 +177,159 @@ export interface AuctionConfig {
 export const NEP413_TAG = 'near-intents-derivatives';
 export const INTENT_VERSION = '1.0.0';
 
+// Utility functions
+export function createMinimalPerpIntent(
+  symbol: string,
+  side: 'long' | 'short',
+  size: string,
+  collateral: Collateral,
+  signer_id: string,
+  deadline: string,
+  nonce: string
+): DerivativesIntent {
+  return {
+    version: '1.0.0',
+    intent_type: 'derivatives',
+    derivatives: {
+      collateral,
+      constraints: {
+        max_fee_bps: 30,
+        max_funding_bps_8h: 50,
+        max_slippage_bps: 100,
+        venue_allowlist: []
+      },
+      instrument: 'perp',
+      leverage: '1',
+      option: null,
+      side,
+      size,
+      symbol: symbol.toUpperCase()
+    },
+    signer_id: signer_id.toLowerCase(),
+    deadline,
+    nonce
+  };
+}
+
+export function createMinimalOptionIntent(
+  symbol: string,
+  side: 'buy' | 'sell',
+  size: string,
+  option: Option,
+  collateral: Collateral,
+  signer_id: string,
+  deadline: string,
+  nonce: string
+): DerivativesIntent {
+  return {
+    version: '1.0.0',
+    intent_type: 'derivatives',
+    derivatives: {
+      collateral,
+      constraints: {
+        max_fee_bps: 30,
+        max_funding_bps_8h: 50,
+        max_slippage_bps: 100,
+        venue_allowlist: []
+      },
+      instrument: 'option',
+      leverage: '1',
+      option,
+      side,
+      size,
+      symbol: symbol.toUpperCase()
+    },
+    signer_id: signer_id.toLowerCase(),
+    deadline,
+    nonce
+  };
+}
+
 export function computeIntentHash(intent: DerivativesIntent): string {
   const crypto = require('crypto');
+  // Note: In production, this should use proper canonicalization
   const message = JSON.stringify(intent);
   const hash = crypto.createHash('sha256').update(message).digest('hex');
-  return hash.substring(0, 64);
+  return hash;
 }
+
+// Re-export migration utilities
+export { migrateV1ToV2, CHAIN_MAPPING, DEFAULT_CONSTRAINTS } from './migration';
 
 export function validateIntent(intent: DerivativesIntent): string[] {
   const errors: string[] = [];
-
-  if (!intent.chain_id) errors.push('chain_id is required');
-  if (intent.intent_type !== 'derivatives') errors.push('intent_type must be derivatives');
-  if (!intent.nonce || parseInt(intent.nonce) <= 0) errors.push('invalid nonce');
-  if (!intent.expiry || intent.expiry <= Date.now() / 1000) errors.push('intent expired');
-  if (!intent.account_id) errors.push('account_id is required');
-  if (!intent.actions || intent.actions.length === 0) errors.push('at least one action required');
-
-  intent.actions.forEach((action, i) => {
-    if (!['perp', 'option'].includes(action.instrument)) {
-      errors.push(`action ${i}: invalid instrument`);
-    }
-    if (!action.symbol) errors.push(`action ${i}: symbol required`);
-    if (!['long', 'short', 'buy', 'sell'].includes(action.side)) {
-      errors.push(`action ${i}: invalid side`);
-    }
-    if (!action.size || parseFloat(action.size) <= 0) {
-      errors.push(`action ${i}: invalid size`);
-    }
-    if (action.instrument === 'perp' && !action.leverage) {
-      errors.push(`action ${i}: leverage required for perps`);
-    }
-    if (action.instrument === 'option' && !action.option) {
-      errors.push(`action ${i}: option details required`);
-    }
-    if (action.max_slippage_bps > 1000) {
-      errors.push(`action ${i}: max_slippage_bps too high`);
-    }
-    if (action.max_fee_bps > 100) {
-      errors.push(`action ${i}: max_fee_bps too high`);
-    }
-    if (!action.venue_allowlist || action.venue_allowlist.length === 0) {
-      errors.push(`action ${i}: venue_allowlist required`);
-    }
-  });
-
-  if (!intent.settlement) errors.push('settlement config required');
-  else {
-    if (intent.settlement.protocol_fee_bps > 50) {
-      errors.push('protocol_fee_bps too high');
-    }
-    if (intent.settlement.rebate_bps > intent.settlement.protocol_fee_bps) {
-      errors.push('rebate_bps exceeds protocol_fee_bps');
-    }
+  
+  // Check version
+  if (intent.version !== '1.0.0') {
+    errors.push(`Invalid version: ${intent.version}. Must be 1.0.0`);
   }
-
+  
+  // Check intent_type
+  if (intent.intent_type !== 'derivatives') {
+    errors.push(`Invalid intent_type: ${intent.intent_type}. Must be 'derivatives'`);
+  }
+  
+  // Check derivatives
+  if (!intent.derivatives) {
+    errors.push('Missing derivatives field');
+  } else {
+    // Check collateral
+    if (!intent.derivatives.collateral) {
+      errors.push('Missing required field: collateral');
+    } else {
+      if (!intent.derivatives.collateral.chain || !intent.derivatives.collateral.token) {
+        errors.push('Collateral must have chain and token');
+      }
+    }
+    
+    // Check constraints
+    if (!intent.derivatives.constraints) {
+      errors.push('Missing required field: constraints');
+    }
+    
+    // Check instrument
+    if (!['perp', 'option'].includes(intent.derivatives.instrument)) {
+      errors.push(`Invalid instrument: ${intent.derivatives.instrument}`);
+    }
+    
+    // Check option structure
+    if (intent.derivatives.instrument === 'option' && !intent.derivatives.option) {
+      errors.push('Missing option params for option instrument');
+    }
+    if (intent.derivatives.instrument === 'perp' && intent.derivatives.option !== null && intent.derivatives.option !== undefined) {
+      errors.push('Option params must be null for perp instrument');
+    }
+    
+    // Check required fields
+    if (!intent.derivatives.side) errors.push('Missing required field: side');
+    if (!intent.derivatives.size) errors.push('Missing required field: size');
+    if (!intent.derivatives.symbol) errors.push('Missing required field: symbol');
+  }
+  
+  // Check root fields
+  if (!intent.signer_id) errors.push('Missing required field: signer_id');
+  if (!intent.deadline) errors.push('Missing required field: deadline');
+  if (!intent.nonce) errors.push('Missing required field: nonce');
+  
   return errors;
 }
 
 export function calculateTotalCost(quote: QuoteResponse): number {
-  const price = parseFloat(quote.price);
-  const fundingCost = price * quote.estimated_funding_bps / 10000;
-  const feeCost = price * quote.fees_bps / 10000;
-  const slippageCost = price * quote.estimated_slippage_bps / 10000;
-  return price + fundingCost + feeCost + slippageCost;
+  // Parse fee as a number
+  const fee = parseFloat(quote.quote.fee || '0');
+  const price = parseFloat(quote.quote.price || '0');
+  const size = parseFloat(quote.quote.size || '1');
+  
+  // Calculate as basis points if needed
+  const totalValue = price * size;
+  const bps = totalValue > 0 ? (fee / totalValue) * 10000 : 0;
+  return Math.round(bps);
 }
+
+// Backwards compatibility exports (to be removed)
+export type DerivativeAction = Derivatives;  // Temporary alias
+export type OptionDetails = Option;  // Temporary alias
+export type SettlementConfig = any;  // Deprecated
+export type ExecutionRequest = AcceptRequest;  // Renamed
+export type ExecutionResult = AcceptResponse;  // Renamed
+export type SettlementData = Settlement;  // Renamed

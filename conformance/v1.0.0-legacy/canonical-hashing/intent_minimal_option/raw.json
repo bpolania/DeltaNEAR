@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "option",
+    "symbol": "BTC-USD",
+    "side": "buy",
+    "size": "0.1",
+    "collateral": {
+      "token": "USDC",
+      "chain": "near"
+    },
+    "option": {
+      "kind": "call",
+      "strike": "50000",
+      "expiry": "2024-12-31T00:00:00Z"
+    }
+  },
+  "signer_id": "bob.testnet",
+  "deadline": "2024-12-30T23:59:59Z",
+  "nonce": "test-minimal-option-001"
+}

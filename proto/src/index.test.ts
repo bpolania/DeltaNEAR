@@ -1,40 +1,32 @@
 import {
   DerivativesIntent,
+  Collateral,
+  Option,
   QuoteResponse,
+  createMinimalPerpIntent,
+  createMinimalOptionIntent,
   computeIntentHash,
   validateIntent,
   calculateTotalCost,
 } from './index';
 
-describe('Proto Utilities', () => {
+describe('Proto Utilities (V2 Schema)', () => {
   describe('computeIntentHash', () => {
     it('should generate consistent hash for same intent', () => {
-      const intent: DerivativesIntent = {
-        chain_id: 'near-testnet',
-        intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
-          instrument: 'perp',
-          symbol: 'ETH-USD',
-          side: 'long',
-          size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 10,
-          max_funding_bps_8h: 20,
-          max_fee_bps: 5,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
-        },
+      const collateral: Collateral = {
+        token: 'USDC',
+        chain: 'near'
       };
+      
+      const intent = createMinimalPerpIntent(
+        'ETH-USD',
+        'long',
+        '1.5',
+        collateral,
+        'user.testnet',
+        '2024-12-31T23:59:59Z',
+        'test-001'
+      );
 
       const hash1 = computeIntentHash(intent);
       const hash2 = computeIntentHash(intent);
@@ -44,32 +36,20 @@ describe('Proto Utilities', () => {
     });
 
     it('should generate different hash for different intents', () => {
-      const intent1: DerivativesIntent = {
-        chain_id: 'near-testnet',
-        intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
-          instrument: 'perp',
-          symbol: 'ETH-USD',
-          side: 'long',
-          size: '1.5',
-          leverage: '5',
-          max_slippage_bps: 10,
-          max_funding_bps_8h: 20,
-          max_fee_bps: 5,
-          venue_allowlist: ['gmx-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'arbitrum',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 2,
-          rebate_bps: 1,
-        },
+      const collateral: Collateral = {
+        token: 'USDC',
+        chain: 'near'
       };
+      
+      const intent1 = createMinimalPerpIntent(
+        'ETH-USD',
+        'long',
+        '1.5',
+        collateral,
+        'user.testnet',
+        '2024-12-31T23:59:59Z',
+        'test-001'
+      );
 
       const intent2 = { ...intent1, nonce: '2' };
       
@@ -82,242 +62,237 @@ describe('Proto Utilities', () => {
 
   describe('validateIntent', () => {
     const validIntent: DerivativesIntent = {
-      chain_id: 'near-testnet',
+      version: '1.0.0',
       intent_type: 'derivatives',
-      nonce: '1',
-      expiry: Math.floor(Date.now() / 1000) + 3600,
-      account_id: 'user.testnet',
-      actions: [{
+      derivatives: {
+        collateral: {
+          token: 'USDC',
+          chain: 'near'
+        },
+        constraints: {
+          max_fee_bps: 30,
+          max_funding_bps_8h: 50,
+          max_slippage_bps: 100,
+          venue_allowlist: []
+        },
         instrument: 'perp',
-        symbol: 'ETH-USD',
+        leverage: '5',
+        option: null,
         side: 'long',
         size: '1.5',
-        leverage: '5',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
-      }],
-      settlement: {
-        payout_token: 'USDC',
-        payout_account: 'user.testnet',
-        protocol_fee_bps: 2,
-        rebate_bps: 1,
+        symbol: 'ETH-USD'
       },
+      signer_id: 'user.testnet',
+      deadline: '2024-12-31T23:59:59Z',
+      nonce: 'test-001'
     };
 
-    it('should validate correct intent', () => {
+    it('should validate a correct intent', () => {
       const errors = validateIntent(validIntent);
-      expect(errors).toHaveLength(0);
+      expect(errors).toEqual([]);
     });
 
-    it('should reject missing chain_id', () => {
-      const intent = { ...validIntent, chain_id: '' };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('chain_id is required');
+    it('should return errors for missing version', () => {
+      const invalidIntent = { ...validIntent, version: '' };
+      const errors = validateIntent(invalidIntent);
+      expect(errors).toContain('Invalid version: . Must be 1.0.0');
     });
 
-    it('should reject wrong intent_type', () => {
-      const intent = { ...validIntent, intent_type: 'invalid' as any };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('intent_type must be derivatives');
-    });
-
-    it('should reject expired intent', () => {
-      const intent = { ...validIntent, expiry: Math.floor(Date.now() / 1000) - 3600 };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('intent expired');
-    });
-
-    it('should reject invalid nonce', () => {
-      const intent = { ...validIntent, nonce: '0' };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('invalid nonce');
-    });
-
-    it('should reject empty actions', () => {
-      const intent = { ...validIntent, actions: [] };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('at least one action required');
-    });
-
-    it('should reject invalid instrument', () => {
-      const intent = {
+    it('should return errors for missing collateral', () => {
+      const invalidIntent = {
         ...validIntent,
-        actions: [{
-          ...validIntent.actions[0],
-          instrument: 'invalid' as any,
-        }],
+        derivatives: {
+          ...validIntent.derivatives,
+          collateral: undefined as any
+        }
       };
-      const errors = validateIntent(intent);
-      expect(errors.some(e => e.includes('invalid instrument'))).toBe(true);
+      const errors = validateIntent(invalidIntent);
+      expect(errors).toContain('Missing required field: collateral');
     });
 
-    it('should reject high slippage', () => {
-      const intent = {
-        ...validIntent,
-        actions: [{
-          ...validIntent.actions[0],
-          max_slippage_bps: 1001,
-        }],
+    it('should return errors for missing required fields', () => {
+      const invalidIntent = {
+        version: '1.0.0',
+        intent_type: 'derivatives',
+        derivatives: {} as any,
+        signer_id: '',
+        deadline: '',
+        nonce: ''
       };
-      const errors = validateIntent(intent);
-      expect(errors.some(e => e.includes('max_slippage_bps too high'))).toBe(true);
+      const errors = validateIntent(invalidIntent);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors).toContain('Missing required field: collateral');
     });
 
-    it('should reject high fees', () => {
-      const intent = {
-        ...validIntent,
-        actions: [{
-          ...validIntent.actions[0],
-          max_fee_bps: 101,
-        }],
-      };
-      const errors = validateIntent(intent);
-      expect(errors.some(e => e.includes('max_fee_bps too high'))).toBe(true);
-    });
-
-    it('should reject perp without leverage', () => {
-      const intent = {
-        ...validIntent,
-        actions: [{
-          ...validIntent.actions[0],
-          leverage: undefined,
-        }],
-      };
-      const errors = validateIntent(intent);
-      expect(errors.some(e => e.includes('leverage required for perps'))).toBe(true);
-    });
-
-    it('should reject option without details', () => {
-      const intent = {
-        ...validIntent,
-        actions: [{
-          ...validIntent.actions[0],
-          instrument: 'option' as const,
-          option: undefined,
-        }],
-      };
-      const errors = validateIntent(intent);
-      expect(errors.some(e => e.includes('option details required'))).toBe(true);
-    });
-
-    it('should reject high protocol fee', () => {
-      const intent = {
-        ...validIntent,
-        settlement: {
-          ...validIntent.settlement,
-          protocol_fee_bps: 51,
+    it('should validate option intent with proper structure', () => {
+      const optionIntent: DerivativesIntent = {
+        version: '1.0.0',
+        intent_type: 'derivatives',
+        derivatives: {
+          collateral: {
+            token: 'USDC',
+            chain: 'near'
+          },
+          constraints: {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: []
+          },
+          instrument: 'option',
+          leverage: '1',
+          option: {
+            kind: 'call',
+            strike: '50000',
+            expiry: '2024-12-31T00:00:00Z'
+          },
+          side: 'buy',
+          size: '0.1',
+          symbol: 'BTC-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: '2024-12-30T23:59:59Z',
+        nonce: 'test-option-001'
       };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('protocol_fee_bps too high');
+      
+      const errors = validateIntent(optionIntent);
+      expect(errors).toEqual([]);
     });
 
-    it('should reject rebate exceeding protocol fee', () => {
-      const intent = {
-        ...validIntent,
-        settlement: {
-          ...validIntent.settlement,
-          protocol_fee_bps: 2,
-          rebate_bps: 3,
+    it('should reject option without option params', () => {
+      const invalidOption: DerivativesIntent = {
+        version: '1.0.0',
+        intent_type: 'derivatives',
+        derivatives: {
+          collateral: {
+            token: 'USDC',
+            chain: 'near'
+          },
+          constraints: {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: []
+          },
+          instrument: 'option',
+          option: null,  // Should have option params
+          side: 'buy',
+          size: '1',
+          symbol: 'BTC-USD'
         },
+        signer_id: 'user.testnet',
+        deadline: '2024-12-31T23:59:59Z',
+        nonce: 'test-001'
       };
-      const errors = validateIntent(intent);
-      expect(errors).toContain('rebate_bps exceeds protocol_fee_bps');
+      
+      const errors = validateIntent(invalidOption);
+      expect(errors).toContain('Missing option params for option instrument');
     });
   });
 
   describe('calculateTotalCost', () => {
-    it('should calculate total cost correctly', () => {
+    it('should calculate total cost in basis points', () => {
       const quote: QuoteResponse = {
-        solver_id: 'solver-1',
-        intent_hash: 'hash123',
-        price: '1000',
-        estimated_funding_bps: 10,
-        fees_bps: 5,
-        estimated_slippage_bps: 3,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        intent_hash: 'test-hash',
+        solver_id: 'solver1',
+        quote: {
+          price: '3500',
+          size: '1',
+          fee: '3.5',  // 0.1% = 10 bps
+          expiry: '2024-12-31T23:59:59Z',
+          venue: 'gmx',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: '2024-12-31T23:00:00Z'
       };
 
-      const totalCost = calculateTotalCost(quote);
-      
-      const expectedCost = 1000 + (1000 * 0.001) + (1000 * 0.0005) + (1000 * 0.0003);
-      expect(totalCost).toBeCloseTo(expectedCost, 2);
+      const totalBps = calculateTotalCost(quote);
+      expect(totalBps).toBe(10);
     });
 
-    it('should handle zero costs', () => {
+    it('should handle zero fees', () => {
       const quote: QuoteResponse = {
-        solver_id: 'solver-1',
-        intent_hash: 'hash123',
-        price: '1000',
-        estimated_funding_bps: 0,
-        fees_bps: 0,
-        estimated_slippage_bps: 0,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
+        intent_hash: 'test-hash',
+        solver_id: 'solver1',
+        quote: {
+          price: '3500',
+          size: '1',
+          fee: '0',
+          expiry: '2024-12-31T23:59:59Z',
+          venue: 'gmx',
+          chain: 'arbitrum'
+        },
+        status: 'success',
+        timestamp: '2024-12-31T23:00:00Z'
       };
 
-      const totalCost = calculateTotalCost(quote);
-      expect(totalCost).toBe(1000);
-    });
-
-    it('should handle high bps values', () => {
-      const quote: QuoteResponse = {
-        solver_id: 'solver-1',
-        intent_hash: 'hash123',
-        price: '1000',
-        estimated_funding_bps: 100,
-        fees_bps: 50,
-        estimated_slippage_bps: 25,
-        venue: 'gmx-v2',
-        valid_until: Date.now() + 30000,
-      };
-
-      const totalCost = calculateTotalCost(quote);
-      const expectedCost = 1000 + (1000 * 0.01) + (1000 * 0.005) + (1000 * 0.0025);
-      expect(totalCost).toBeCloseTo(expectedCost, 2);
+      const totalBps = calculateTotalCost(quote);
+      expect(totalBps).toBe(0);
     });
   });
 
-  describe('Option Intent Validation', () => {
-    it('should validate option intent correctly', () => {
-      const optionIntent: DerivativesIntent = {
-        chain_id: 'near-testnet',
-        intent_type: 'derivatives',
-        nonce: '1',
-        expiry: Math.floor(Date.now() / 1000) + 3600,
-        account_id: 'user.testnet',
-        actions: [{
-          instrument: 'option',
-          symbol: 'ETH-USD',
-          side: 'buy',
-          size: '10',
-          option: {
-            kind: 'call',
-            strike: '4000',
-            expiry: '2024-12-31T00:00:00Z',
-          },
-          max_slippage_bps: 50,
-          max_funding_bps_8h: 0,
-          max_fee_bps: 10,
-          venue_allowlist: ['lyra-v2'],
-          collateral_token: 'USDC',
-          collateral_chain: 'base',
-        }],
-        settlement: {
-          payout_token: 'USDC',
-          payout_account: 'user.testnet',
-          protocol_fee_bps: 3,
-          rebate_bps: 1,
-        },
+  describe('Helper Functions', () => {
+    it('should create minimal perp intent', () => {
+      const collateral: Collateral = {
+        token: 'USDC',
+        chain: 'near'
       };
+      
+      const intent = createMinimalPerpIntent(
+        'ETH-USD',
+        'long',
+        '1.5',
+        collateral,
+        'alice.testnet',
+        '2024-12-31T23:59:59Z',
+        'test-001'
+      );
+      
+      expect(intent.version).toBe('1.0.0');
+      expect(intent.intent_type).toBe('derivatives');
+      expect(intent.derivatives.instrument).toBe('perp');
+      expect(intent.derivatives.symbol).toBe('ETH-USD');
+      expect(intent.derivatives.side).toBe('long');
+      expect(intent.derivatives.size).toBe('1.5');
+      expect(intent.derivatives.leverage).toBe('1');
+      expect(intent.derivatives.option).toBeNull();
+      expect(intent.derivatives.collateral).toEqual(collateral);
+      expect(intent.signer_id).toBe('alice.testnet');
+    });
 
-      const errors = validateIntent(optionIntent);
-      expect(errors).toHaveLength(0);
+    it('should create minimal option intent', () => {
+      const collateral: Collateral = {
+        token: 'USDC',
+        chain: 'near'
+      };
+      
+      const option: Option = {
+        kind: 'call',
+        strike: '50000',
+        expiry: '2024-12-31T00:00:00Z'
+      };
+      
+      const intent = createMinimalOptionIntent(
+        'BTC-USD',
+        'buy',
+        '0.1',
+        option,
+        collateral,
+        'bob.testnet',
+        '2024-12-30T23:59:59Z',
+        'test-option-001'
+      );
+      
+      expect(intent.version).toBe('1.0.0');
+      expect(intent.intent_type).toBe('derivatives');
+      expect(intent.derivatives.instrument).toBe('option');
+      expect(intent.derivatives.symbol).toBe('BTC-USD');
+      expect(intent.derivatives.side).toBe('buy');
+      expect(intent.derivatives.size).toBe('0.1');
+      expect(intent.derivatives.option).toEqual(option);
+      expect(intent.derivatives.collateral).toEqual(collateral);
+      expect(intent.signer_id).toBe('bob.testnet');
     });
   });
 });

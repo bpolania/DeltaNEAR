@@ -1,0 +1,25 @@
+{
+  "manifest_version": "2.0.0",
+  "schema_version": "2.0.0",
+  "abi_hash": "67e4874cb41e405be0d3e532341adace4137cb30d59b42cb480823624bb4503f",
+  "release_date": "2025-08-25",
+  "compatibility": {
+    "v1_0_0_breaking": true,
+    "migration_required": true
+  },
+  "test_vectors": {
+    "canonical_hashing": [
+      "intent_v2_perp",
+      "intent_v2_option", 
+      "intent_cross_chain",
+      "intent_constraints"
+    ],
+    "solver_api": [
+      "quote_request_v2",
+      "quote_response_v2",
+      "accept_request_v2"
+    ]
+  },
+  "specification_url": "https://docs.deltanear.io/spec/v2.0.0",
+  "migration_guide": "../../docs/MIGRATION_V1_TO_V2.md"
+}

@@ -1,0 +1,9 @@
+{
+  "sha256": "8d896eb6a2d6f0ab2628aeffd3ff35ad2ad403c0c78f76e1f5c9fb6f95e3c6e9",
+  "intent_hash": "345678901234567890123456789012345678901234567890123456789012abc",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 236,
+  "normalization_notes": [
+    "Successful acceptance response"
+  ]
+}

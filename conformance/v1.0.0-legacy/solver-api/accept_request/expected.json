@@ -1,0 +1,9 @@
+{
+  "sha256": "999fcf7187420c11d3cf8459dfaf35fccb318726ae480a086b74e6ba976f2130",
+  "intent_hash": "012345678901234567890123456789012345678901234567890123456789abc",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 286,
+  "normalization_notes": [
+    "Intent acceptance with signature"
+  ]
+}

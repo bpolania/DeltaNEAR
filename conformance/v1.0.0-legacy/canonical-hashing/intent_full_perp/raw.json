@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "perp",
+    "symbol": "SOL-USD",
+    "side": "short",
+    "size": "100.5",
+    "leverage": "5",
+    "collateral": {
+      "token": "USDC",
+      "chain": "near"
+    },
+    "constraints": {
+      "max_slippage_bps": 200,
+      "max_fee_bps": 50,
+      "venue_allowlist": [
+        "dydx",
+        "gmx"
+      ]
+    }
+  },
+  "signer_id": "trader.testnet",
+  "deadline": "2024-12-31T23:59:59.000Z",
+  "nonce": "test-full-perp-001"
+}

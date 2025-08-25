@@ -1,0 +1,22 @@
+{
+  "intent_hash": "abc123def456789012345678901234567890123456789012345678901234567",
+  "intent": {
+    "version": "1.0.0",
+    "intent_type": "derivatives",
+    "derivatives": {
+      "instrument": "perp",
+      "symbol": "ETH-USD",
+      "side": "long",
+      "size": "1",
+      "leverage": "5",
+      "collateral": {
+        "token": "USDC",
+        "chain": "near"
+      }
+    },
+    "signer_id": "user.testnet",
+    "deadline": "2024-12-31T23:59:59Z",
+    "nonce": "quote-req-001"
+  },
+  "solver_id": "solver1.testnet"
+}

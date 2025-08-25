@@ -1,0 +1,58 @@
+{
+  "manifest_version": "2.0.0",
+  "release_date": "2025-08-25",
+  "description": "DeltaNEAR Derivatives Intent Protocol V2.0.0 - Breaking changes to schema structure",
+  "breaking_changes": [
+    "Replaced chain_id with derivatives.collateral.{chain,token}",
+    "Added required derivatives.constraints object",
+    "Cross-chain collateral support introduced",
+    "V1.0.0 intents now fail validation and produce different hashes"
+  ],
+  "schema": {
+    "version": "2.0.0",
+    "intent_structure": {
+      "version": "1.0.0",
+      "intent_type": "derivatives",
+      "derivatives": {
+        "collateral": {
+          "chain": "string (required): arbitrum | ethereum | near | base | solana",
+          "token": "string (required): USDC | USDT | DAI | etc"
+        },
+        "constraints": {
+          "max_fee_bps": "number (required): 0-100, default 30",
+          "max_funding_bps_8h": "number (required): 0-100, default 50", 
+          "max_slippage_bps": "number (required): 0-1000, default 100",
+          "venue_allowlist": "string[] (required): lowercase venue names, default []"
+        },
+        "instrument": "perp | option",
+        "leverage": "string (optional): default '1'",
+        "option": "Option | null (required for options, null for perps)",
+        "side": "long | short | buy | sell",
+        "size": "string (required): canonical decimal",
+        "symbol": "string (required): UPPERCASE"
+      },
+      "signer_id": "string (required)",
+      "deadline": "string (required): ISO 8601 timestamp",
+      "nonce": "string (required)"
+    }
+  },
+  "compatibility": {
+    "v1.0.0_breaking": true,
+    "migration_required": true,
+    "legacy_support": "Available via compatibility shim only"
+  },
+  "contracts": {
+    "testnet": {
+      "account_id": "deltanear-v2-1756106334.testnet",
+      "schema_version": "2.0.0",
+      "deployed": "2025-08-25"
+    }
+  },
+  "migration": {
+    "from_v1": {
+      "chain_id": "Map to derivatives.collateral.chain",
+      "missing_constraints": "Add default constraints object",
+      "collateral_token": "Must be specified explicitly"
+    }
+  }
+}

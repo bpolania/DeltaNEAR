@@ -1,0 +1,85 @@
+[
+  {
+    "name": "missing_collateral",
+    "reason": "Missing required field: collateral",
+    "intent": {
+      "version": "1.0.0",
+      "intent_type": "derivatives",
+      "derivatives": {
+        "instrument": "perp",
+        "symbol": "ETH-USD",
+        "side": "long",
+        "size": "1"
+      },
+      "signer_id": "test.testnet",
+      "deadline": "2024-12-31T23:59:59Z",
+      "nonce": "test-001"
+    }
+  },
+  {
+    "name": "invalid_instrument",
+    "reason": "Invalid instrument: future",
+    "intent": {
+      "version": "1.0.0",
+      "intent_type": "derivatives",
+      "derivatives": {
+        "instrument": "future",
+        "symbol": "ETH-USD",
+        "side": "long",
+        "size": "1",
+        "collateral": {
+          "token": "USDC",
+          "chain": "near"
+        }
+      },
+      "signer_id": "test.testnet",
+      "deadline": "2024-12-31T23:59:59Z",
+      "nonce": "test-002"
+    }
+  },
+  {
+    "name": "scientific_notation",
+    "reason": "Scientific notation not allowed",
+    "intent": {
+      "version": "1.0.0",
+      "intent_type": "derivatives",
+      "derivatives": {
+        "instrument": "perp",
+        "symbol": "ETH-USD",
+        "side": "long",
+        "size": "1.5e10",
+        "collateral": {
+          "token": "USDC",
+          "chain": "near"
+        }
+      },
+      "signer_id": "test.testnet",
+      "deadline": "2024-12-31T23:59:59Z",
+      "nonce": "test-003"
+    }
+  },
+  {
+    "name": "extra_root_field",
+    "reason": "Invalid root fields",
+    "intent": {
+      "version": "1.0.0",
+      "intent_type": "derivatives",
+      "derivatives": {
+        "instrument": "perp",
+        "symbol": "ETH-USD",
+        "side": "long",
+        "size": "1",
+        "collateral": {
+          "token": "USDC",
+          "chain": "near"
+        }
+      },
+      "signer_id": "test.testnet",
+      "deadline": "2024-12-31T23:59:59Z",
+      "nonce": "test-004",
+      "metadata": {
+        "note": "not allowed"
+      }
+    }
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "perp",
+    "symbol": "NEAR-USD",
+    "side": "long",
+    "size": "1000",
+    "leverage": "3",
+    "collateral": {
+      "token": "NEAR",
+      "chain": "near"
+    },
+    "constraints": {
+      "max_fee_bps": 25,
+      "max_funding_bps_8h": 40,
+      "max_slippage_bps": 75,
+      "venue_allowlist": [
+        "dYdX",
+        "GMX",
+        "Drift"
+      ]
+    }
+  },
+  "signer_id": "analytics.testnet",
+  "deadline": "2024-12-31T23:59:59Z",
+  "nonce": "test-constraints-001"
+}

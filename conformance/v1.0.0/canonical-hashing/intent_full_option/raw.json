@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "option",
+    "symbol": "ETH-USD",
+    "side": "sell",
+    "size": "5",
+    "leverage": "1",
+    "collateral": {
+      "token": "ETH",
+      "chain": "near"
+    },
+    "option": {
+      "kind": "call",
+      "strike": "3000",
+      "expiry": "2025-01-31T00:00:00.000Z"
+    },
+    "constraints": {
+      "max_slippage_bps": 150,
+      "venue_allowlist": [
+        "lyra",
+        "hegic"
+      ]
+    }
+  },
+  "signer_id": "options.testnet",
+  "deadline": "2024-12-30T12:00:00.000Z",
+  "nonce": "test-full-option-001"
+}

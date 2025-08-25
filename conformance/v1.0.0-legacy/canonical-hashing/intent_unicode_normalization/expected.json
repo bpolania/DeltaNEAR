@@ -1,0 +1,10 @@
+{
+  "sha256": "19cbd59dda11e4b29a7dad06439c4d59903b62417a854ac64debb1d703f42126",
+  "intent_hash": "03d3fcee7c31e2f4ac3efe84fc64f8219bb2b4a2a4acf625821c8c4121aa2fa6",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 384,
+  "normalization_notes": [
+    "Unicode in signer_id and nonce",
+    "Signer ID will be lowercased"
+  ]
+}

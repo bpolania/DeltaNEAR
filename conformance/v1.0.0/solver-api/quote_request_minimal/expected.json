@@ -1,0 +1,9 @@
+{
+  "sha256": "98b1173eca002f466d8cde7a63b58938bb51534863c2cbfd67917a713d4e18a1",
+  "intent_hash": "abc123def456789012345678901234567890123456789012345678901234567",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 393,
+  "normalization_notes": [
+    "Quote request with proper intent structure"
+  ]
+}

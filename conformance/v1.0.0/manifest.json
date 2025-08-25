@@ -1,0 +1,309 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2024-01-15T00:00:00Z",
+  "chain": "near",
+  "contract": "deltanear-derivatives.testnet",
+  "canonicalization": {
+    "version": "1.0.0",
+    "spec": "RFC-8785",
+    "hash_algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "unicode_normalization": "NFC"
+  },
+  "abi": {
+    "functions": [
+      {
+        "name": "simulate_intents",
+        "kind": "call",
+        "params": {
+          "intents": { "type": "array", "items": { "$ref": "#/definitions/SignedIntent" } }
+        },
+        "return_type": { "$ref": "#/definitions/SimulationResult" }
+      },
+      {
+        "name": "execute_intents",
+        "kind": "call",
+        "params": {
+          "intents": { "type": "array", "items": { "$ref": "#/definitions/SignedIntent" } }
+        },
+        "return_type": { "$ref": "#/definitions/ExecutionReceipt" }
+      },
+      {
+        "name": "get_schema_version",
+        "kind": "view",
+        "return_type": { "type": "string", "const": "1.0.0" }
+      },
+      {
+        "name": "get_manifest_hash",
+        "kind": "view",
+        "return_type": { "type": "string", "description": "SHA-256 of this manifest" }
+      },
+      {
+        "name": "get_fee_config",
+        "kind": "view",
+        "return_type": { "$ref": "#/definitions/FeeConfig" }
+      },
+      {
+        "name": "get_supported_symbols",
+        "kind": "view",
+        "return_type": { "type": "array", "items": { "type": "string" } }
+      },
+      {
+        "name": "get_allowed_venues",
+        "kind": "view",
+        "return_type": { "type": "array", "items": { "type": "string" } }
+      },
+      {
+        "name": "get_guardrails",
+        "kind": "view",
+        "return_type": { "$ref": "#/definitions/Guardrails" }
+      },
+      {
+        "name": "verify_intent_hash",
+        "kind": "view",
+        "params": {
+          "intent": { "$ref": "#/definitions/DerivativesIntent" },
+          "expected_hash": { "type": "string" }
+        },
+        "return_type": {
+          "type": "object",
+          "properties": {
+            "valid": { "type": "boolean" },
+            "computed_hash": { "type": "string" },
+            "expected_hash": { "type": "string" }
+          }
+        }
+      }
+    ]
+  },
+  "events": {
+    "standard": "NEP-297",
+    "version": "1.0.0",
+    "schemas": [
+      {
+        "event": "simulation_result",
+        "required": ["intent_hash", "status", "manifest_hash", "serialized_intent", "timestamp"],
+        "properties": {
+          "intent_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "status": { "enum": ["success", "failed", "rejected"] },
+          "manifest_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "serialized_intent": { "type": "string", "description": "Canonical JSON of intent" },
+          "simulation_params": {
+            "type": "object",
+            "properties": {
+              "venue": { "type": "string" },
+              "estimated_fill": { "type": "string" },
+              "estimated_fees": { "type": "string" },
+              "exclusivity_window_ms": { "type": "integer" }
+            }
+          },
+          "rejection_reason": { "type": "string" },
+          "timestamp": { "type": "integer" },
+          "nonce": { "type": "string" },
+          "deadline": { "type": "string" }
+        }
+      },
+      {
+        "event": "metadata_audit",
+        "required": ["intent_hash", "stage", "checksum", "preserved"],
+        "properties": {
+          "intent_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "stage": { "enum": ["pre_1click", "solver_received", "post_execution"] },
+          "checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "preserved": { "type": "boolean" },
+          "original_checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      },
+      {
+        "event": "replay_prevented",
+        "required": ["intent_hash", "nonce", "reason"],
+        "properties": {
+          "intent_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "nonce": { "type": "string" },
+          "reason": { "enum": ["nonce_reused", "deadline_expired", "clock_skew_exceeded"] },
+          "details": { "type": "object" }
+        }
+      }
+    ]
+  },
+  "solver_api": {
+    "quote_request": {
+      "type": "object",
+      "required": ["intent", "metadata_checksum", "exclusivity_window_ms"],
+      "properties": {
+        "intent": { "$ref": "#/definitions/DerivativesIntent" },
+        "metadata_checksum": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "exclusivity_window_ms": { "type": "integer", "minimum": 0, "maximum": 30000 },
+        "solver_preferences": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "quote_response": {
+      "type": "object",
+      "required": ["quote_id", "intent_hash", "venue", "fill_price", "fees", "expiry_ms"],
+      "properties": {
+        "quote_id": { "type": "string" },
+        "intent_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "venue": { "type": "string" },
+        "fill_price": { "type": "string" },
+        "fees": { "type": "string" },
+        "expiry_ms": { "type": "integer" },
+        "metadata_checksum_received": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "solver_signature": { "type": "string" }
+      }
+    },
+    "accept_request": {
+      "type": "object",
+      "required": ["quote_id", "intent_hash", "signer_proof"],
+      "properties": {
+        "quote_id": { "type": "string" },
+        "intent_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "signer_proof": { "$ref": "#/definitions/NEP413Signature" }
+      }
+    },
+    "accept_response": {
+      "type": "object",
+      "required": ["execution_id", "status"],
+      "properties": {
+        "execution_id": { "type": "string" },
+        "status": { "enum": ["accepted", "rejected", "expired"] },
+        "rejection_code": {
+          "enum": [
+            "QUOTE_EXPIRED",
+            "INVALID_SIGNATURE",
+            "INSUFFICIENT_COLLATERAL",
+            "VENUE_UNAVAILABLE",
+            "SIMULATION_FAILED",
+            "CLOCK_SKEW",
+            "NONCE_REUSED"
+          ]
+        },
+        "message": { "type": "string" }
+      }
+    }
+  },
+  "definitions": {
+    "DerivativesIntent": {
+      "type": "object",
+      "required": ["version", "intent_type", "derivatives", "signer_id", "deadline", "nonce"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "intent_type": { "const": "derivatives" },
+        "derivatives": {
+          "type": "object",
+          "required": ["instrument", "symbol", "side", "size", "collateral"],
+          "properties": {
+            "instrument": { "enum": ["perp", "option", "future"] },
+            "symbol": { "pattern": "^[A-Z]+-[A-Z]+$" },
+            "side": { "enum": ["long", "short", "buy", "sell"] },
+            "size": { "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+            "leverage": { "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+            "limit_price": { "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+            "option": {
+              "type": "object",
+              "required": ["kind", "strike", "expiry"],
+              "properties": {
+                "kind": { "enum": ["call", "put"] },
+                "strike": { "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+                "expiry": { "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" }
+              }
+            },
+            "collateral": {
+              "type": "object",
+              "required": ["token", "chain"],
+              "properties": {
+                "token": { "type": "string" },
+                "chain": { "type": "string" },
+                "amount": { "pattern": "^[0-9]+$" }
+              }
+            }
+          }
+        },
+        "signer_id": { "pattern": "^[a-z0-9_.-]+$" },
+        "deadline": { "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" },
+        "nonce": { "type": "string", "minLength": 16 },
+        "metadata": { "type": "object" }
+      }
+    },
+    "NEP413Signature": {
+      "type": "object",
+      "required": ["signature", "public_key", "message"],
+      "properties": {
+        "signature": { "type": "string" },
+        "public_key": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "SimulationResult": {
+      "type": "object",
+      "required": ["valid", "simulated", "errors", "estimated_fees"],
+      "properties": {
+        "valid": { "type": "boolean" },
+        "simulated": { "type": "array" },
+        "errors": { "type": "array" },
+        "estimated_fees": { "type": "string" },
+        "warnings": { "type": "array" }
+      }
+    },
+    "ExecutionReceipt": {
+      "type": "object",
+      "required": ["success", "executed", "failed", "total_fee"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "executed": { "type": "array", "items": { "type": "string" } },
+        "failed": { "type": "array" },
+        "total_fee": { "type": "string" },
+        "settlements": { "type": "array" }
+      }
+    },
+    "FeeConfig": {
+      "type": "object",
+      "properties": {
+        "protocol_fee_bps": { "type": "integer" },
+        "solver_rebate_bps": { "type": "integer" },
+        "min_fee_usdc": { "type": "string" },
+        "max_fee_bps": { "type": "integer" },
+        "treasury": { "type": "string" }
+      }
+    },
+    "Guardrails": {
+      "type": "object",
+      "properties": {
+        "max_position_size": { "type": "string" },
+        "max_leverage": { "type": "string" },
+        "max_daily_volume": { "type": "string" },
+        "allowed_instruments": { "type": "array" },
+        "cooldown_seconds": { "type": "integer" }
+      }
+    }
+  },
+  "testnet_tokens": {
+    "usdc.fakes.testnet": {
+      "decimals": 6,
+      "name": "USD Coin",
+      "faucet": "mint function"
+    },
+    "weth.fakes.testnet": {
+      "decimals": 18,
+      "name": "Wrapped Ether",
+      "faucet": "mint function"
+    },
+    "wbtc.fakes.testnet": {
+      "decimals": 8,
+      "name": "Wrapped Bitcoin",
+      "faucet": "mint function"
+    },
+    "wrap.testnet": {
+      "decimals": 24,
+      "name": "Wrapped NEAR",
+      "faucet": "near_deposit function"
+    }
+  },
+  "clock_tolerance": {
+    "max_skew_seconds": 30,
+    "simulation_validity_seconds": 300,
+    "nonce_expiry_seconds": 3600
+  }
+}

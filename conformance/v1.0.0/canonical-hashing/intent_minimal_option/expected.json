@@ -1,0 +1,10 @@
+{
+  "sha256": "1a779280aaf6b06436e00d187a160aa7b13cbe1468cddc6332b3d6e84ffcd2b1",
+  "intent_hash": "001496fd95bc5ad7955327ed090af829e7f09e6aa6f86cae4fa13d8dc3c432cf",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 459,
+  "normalization_notes": [
+    "Minimal option intent with required option object structure",
+    "Option parameters must be in option sub-object"
+  ]
+}

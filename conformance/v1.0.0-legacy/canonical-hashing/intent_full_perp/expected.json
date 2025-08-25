@@ -1,0 +1,11 @@
+{
+  "sha256": "220c703dd2983a1e620b1c670a2dd66b87f9f5602692d882bf8c471541185402",
+  "intent_hash": "a6388f7f93056e18cc54b9a031013012da36149d0271717b4fd3390c77070657",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 411,
+  "normalization_notes": [
+    "Full perpetual with constraints object",
+    "Constraints must be in constraints sub-object",
+    "Venue allowlist will be lowercased and sorted"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "sha256": "4846943d5130f6ad1978cd61628322f901754b8ba21e583bd0e3eefd63b8043f",
+  "intent_hash": "dc40febfdcf8822d67428b76a8acb1c1caf9f6a8bf8a98f57928dce28dbc7dce",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 422,
+  "normalization_notes": [
+    "All constraint fields properly specified",
+    "Venue names will be lowercased and sorted"
+  ]
+}
