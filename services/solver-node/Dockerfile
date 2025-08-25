@@ -1,19 +1,29 @@
 FROM node:20-alpine
 
-WORKDIR /app
+# Install pnpm
+RUN npm install -g pnpm@8
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+WORKDIR /workspace
 
-# Install dependencies
-RUN npm ci
+# Copy workspace files first
+COPY pnpm-workspace.yaml ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 
-# Copy source code
-COPY src ./src
+# Copy proto package
+COPY proto/ ./proto/
 
-# Build the application
-RUN npm run build
+# Copy this service
+COPY services/solver-node/ ./services/solver-node/
+
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build workspace
+RUN pnpm build
+
+# Set working directory to service
+WORKDIR /workspace/services/solver-node
 
 # Run the application
 CMD ["node", "dist/index.js"]

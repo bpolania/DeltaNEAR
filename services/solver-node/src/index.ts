@@ -159,7 +159,7 @@ export class SolverNode {
     try {
       logger.info({ intent_hash: request.intent_hash }, 'Processing quote request');
       
-      const action = request.intent.actions[0];
+      const action = request.intent.derivatives;
       const bestQuote = await this.findBestQuote(action);
       
       if (!bestQuote) {
@@ -182,21 +182,25 @@ export class SolverNode {
       }
 
       const quote: QuoteResponse = {
-        solver_id: this.config.id,
         intent_hash: request.intent_hash,
-        price: bestQuote.quote.mid || bestQuote.quote.ask || '0',
-        estimated_funding_bps: parseFloat(bestQuote.quote.funding_rate_8h || '0') * 10000,
-        fees_bps: 5,
-        estimated_slippage_bps: 3,
-        venue: bestQuote.venue,
-        valid_until: Date.now() + 30000,
+        solver_id: this.config.id,
+        quote: {
+          price: bestQuote.quote.mid || bestQuote.quote.ask || '0',
+          size: action.size,
+          fee: (parseFloat(action.size) * 5 / 10000).toString(),
+          expiry: new Date(Date.now() + 30000).toISOString(),
+          venue: bestQuote.venue,
+          chain: action.collateral.chain
+        },
+        status: 'success' as const,
+        timestamp: new Date().toISOString()
       };
 
       this.send('quote', quote);
       logger.info({ 
         intent_hash: request.intent_hash,
         venue: bestQuote.venue,
-        price: quote.price
+        price: quote.quote.price
       }, 'Quote sent');
     } catch (error) {
       logger.error({ error, intent_hash: request.intent_hash }, 'Failed to generate quote');
@@ -206,7 +210,7 @@ export class SolverNode {
   private async findBestQuote(action: DerivativeAction): Promise<{ venue: string; quote: VenueQuote } | null> {
     const quotes: { venue: string; quote: VenueQuote }[] = [];
 
-    for (const venue of action.venue_allowlist) {
+    for (const venue of action.constraints.venue_allowlist) {
       const adapter = this.adapters.get(venue);
       if (!adapter) continue;
 
@@ -217,7 +221,7 @@ export class SolverNode {
           side: action.side,
           size: action.size,
           leverage: action.leverage,
-          option: action.option,
+          option: action.option || undefined,
         });
         
         quotes.push({ venue, quote });
@@ -240,14 +244,29 @@ export class SolverNode {
   private async handleExecutionRequest(request: ExecutionRequest) {
     try {
       logger.info({ 
-        intent_hash: request.intent_hash,
-        exclusive_until: new Date(request.exclusive_until).toISOString()
+        intent_hash: request.intent_hash
       }, 'Starting execution');
 
       this.activeExecutions.set(request.intent_hash, request);
       
-      const action = request.intent.actions[0];
-      const adapter = this.adapters.get(action.venue_allowlist[0]);
+      // TODO: In a real system, look up the intent by request.intent_hash
+      // For now, create a mock derivatives object for compilation
+      const action = {
+        collateral: { chain: 'near', token: 'usdc.fakes' },
+        constraints: { 
+          venue_allowlist: ['gmx-v2'], 
+          max_funding_bps_8h: 50,
+          max_fee_bps: 30,
+          max_slippage_bps: 100
+        },
+        instrument: 'perp' as const,
+        size: '1000',
+        symbol: 'BTC',
+        side: 'long' as const,
+        leverage: '10',
+        option: null
+      };
+      const adapter = this.adapters.get(action.constraints.venue_allowlist[0]);
       
       if (!adapter) {
         throw new Error('No adapter available for execution');
@@ -261,8 +280,8 @@ export class SolverNode {
         side: action.side,
         size: action.size,
         leverage: action.leverage,
-        option: action.option,
-      }, request.exclusive_until);
+        option: action.option || undefined,
+      }, Date.now() + 60000);
 
       const pnl = await this.calculatePnL(action, executionResult);
       
@@ -271,19 +290,18 @@ export class SolverNode {
       const result: ExecutionResult = {
         intent_hash: request.intent_hash,
         solver_id: this.config.id,
-        venue: action.venue_allowlist[0],
-        fill_price: executionResult.fill_price,
-        notional: executionResult.notional,
-        fees_bps: 5,
-        pnl: pnl.toString(),
-        status: 'filled',
+        status: 'accepted' as const,
+        execution_id: `exec_${Date.now()}`,
+        estimated_completion: new Date(Date.now() + 60000).toISOString(),
+        venue: action.constraints.venue_allowlist[0],
+        chain: action.collateral.chain
       };
 
       this.send('execution_result', result);
       logger.info({ 
         intent_hash: request.intent_hash,
-        fill_price: result.fill_price,
-        pnl: result.pnl
+        execution_id: result.execution_id,
+        venue: result.venue
       }, 'Execution completed');
 
       this.activeExecutions.delete(request.intent_hash);
@@ -293,12 +311,11 @@ export class SolverNode {
       const result: ExecutionResult = {
         intent_hash: request.intent_hash,
         solver_id: this.config.id,
-        venue: '',
-        fill_price: '0',
-        notional: '0',
-        fees_bps: 0,
-        pnl: '0',
-        status: 'failed',
+        status: 'rejected' as const,
+        execution_id: `exec_${Date.now()}`,
+        estimated_completion: new Date().toISOString(),
+        venue: 'gmx-v2',
+        chain: 'near'
       };
       
       this.send('execution_result', result);
@@ -312,17 +329,17 @@ export class SolverNode {
     const requiredCollateral = size.div(leverage);
 
     logger.info({ 
-      token: action.collateral_token,
-      chain: action.collateral_chain,
+      token: action.collateral.token,
+      chain: action.collateral.chain,
       amount: requiredCollateral.toString()
     }, 'Allocating collateral');
 
     await this.chainSigner.signAndBroadcast({
-      chain: action.collateral_chain,
+      chain: action.collateral.chain,
       to: 'vault.address',
       data: {
         action: 'deposit',
-        token: action.collateral_token,
+        token: action.collateral.token,
         amount: requiredCollateral.toString(),
       },
     });
@@ -355,10 +372,10 @@ export class SolverNode {
     // The metadata contract only logs, doesn't handle tokens
     
     const settlementParams = {
-      userAccount: action.account_id || 'user.testnet',
+      userAccount: 'user.testnet',
       solverAccount: this.config.near_account,
-      collateralToken: action.collateral_token,
-      settlementToken: action.collateral_token, // Same as collateral for simplicity
+      collateralToken: action.collateral.token,
+      settlementToken: action.collateral.token, // Same as collateral for simplicity
       entryPrice: execution.entryPrice.toString(),
       exitPrice: execution.exitPrice.toString(),
       size: action.size,

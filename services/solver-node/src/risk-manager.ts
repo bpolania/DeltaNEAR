@@ -59,7 +59,7 @@ export class RiskManager {
     }
 
     const fundingRate = parseFloat(quote.funding_rate_8h || '0');
-    const maxFundingRate = action.max_funding_bps_8h / 10000;
+    const maxFundingRate = action.constraints.max_funding_bps_8h / 10000;
     if (Math.abs(fundingRate) > maxFundingRate) {
       return {
         allowed: false,
