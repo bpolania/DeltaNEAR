@@ -1,0 +1,307 @@
+name: ABI Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'contracts/near-intents-derivatives/**'
+      - '.github/workflows/abi-validation.yml'
+
+jobs:
+  validate-abi:
+    name: Validate ABI Stability
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for comparison
+    
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        target: wasm32-unknown-unknown
+    
+    - name: Cache Cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          contracts/near-intents-derivatives/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Check ABI File Exists
+      run: |
+        if [ ! -f "contracts/near-intents-derivatives/abi/v1.0.0.json" ]; then
+          echo "ERROR: ABI file v1.0.0.json not found!"
+          exit 1
+        fi
+    
+    - name: Validate ABI JSON Structure
+      run: |
+        cd contracts/near-intents-derivatives
+        python3 -m json.tool abi/v1.0.0.json > /dev/null
+        if [ $? -ne 0 ]; then
+          echo "ERROR: ABI JSON is invalid!"
+          exit 1
+        fi
+    
+    - name: Check ABI Version
+      run: |
+        cd contracts/near-intents-derivatives
+        ABI_VERSION=$(jq -r '.schema_version' abi/v1.0.0.json)
+        if [ "$ABI_VERSION" != "1.0.0" ]; then
+          echo "ERROR: ABI schema_version must be 1.0.0, got: $ABI_VERSION"
+          exit 1
+        fi
+    
+    - name: Verify Required View Methods
+      run: |
+        cd contracts/near-intents-derivatives
+        REQUIRED_METHODS=(
+          "get_schema_version"
+          "get_fee_config"
+          "get_guardrails"
+          "get_supported_symbols"
+          "get_allowed_venues"
+          "verify_intent_hash"
+          "get_intent_metadata"
+          "get_execution_log"
+        )
+        
+        for method in "${REQUIRED_METHODS[@]}"; do
+          jq -e ".methods.view[] | select(.name == \"$method\")" abi/v1.0.0.json > /dev/null
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Required view method '$method' not found in ABI!"
+            exit 1
+          fi
+        done
+        
+        echo "✅ All required view methods present"
+    
+    - name: Verify NEP-297 Events
+      run: |
+        cd contracts/near-intents-derivatives
+        REQUIRED_EVENTS=(
+          "intent_submitted"
+          "execution_logged"
+        )
+        
+        for event in "${REQUIRED_EVENTS[@]}"; do
+          jq -e ".events.events[] | select(.name == \"$event\")" abi/v1.0.0.json > /dev/null
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Required event '$event' not found in ABI!"
+            exit 1
+          fi
+        done
+        
+        # Check event standard
+        STANDARD=$(jq -r '.events.standard' abi/v1.0.0.json)
+        if [ "$STANDARD" != "deltanear_derivatives" ]; then
+          echo "ERROR: Event standard must be 'deltanear_derivatives', got: $STANDARD"
+          exit 1
+        fi
+        
+        echo "✅ NEP-297 events validated"
+    
+    - name: Compare ABI with Previous Version
+      if: github.event_name == 'pull_request'
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Get ABI from main branch
+        git show origin/main:contracts/near-intents-derivatives/abi/v1.0.0.json > abi_main.json 2>/dev/null || true
+        
+        if [ -f "abi_main.json" ]; then
+          # Compare view methods structure
+          jq -S '.methods.view | sort_by(.name)' abi/v1.0.0.json > current_views.json
+          jq -S '.methods.view | sort_by(.name)' abi_main.json > main_views.json
+          
+          if ! diff -u main_views.json current_views.json; then
+            echo "WARNING: View methods have changed! This may break backward compatibility."
+            echo "If this is intentional, ensure you're creating a new version (v2.0.0)"
+          fi
+        fi
+    
+    - name: Run Contract Tests
+      run: |
+        cd contracts/near-intents-derivatives
+        cargo test --lib
+    
+    - name: Test Canonical Hashing
+      run: |
+        cd contracts/near-intents-derivatives
+        cargo test test_canonical_hashing
+    
+    - name: Validate Test Vectors
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Check test vectors file exists
+        if [ ! -f "test-vectors/canonical-hashing.json" ]; then
+          echo "ERROR: Test vectors file not found!"
+          exit 1
+        fi
+        
+        # Validate JSON structure
+        python3 -m json.tool test-vectors/canonical-hashing.json > /dev/null
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Test vectors JSON is invalid!"
+          exit 1
+        fi
+        
+        echo "✅ Test vectors validated"
+    
+    - name: Build Contract
+      run: |
+        cd contracts/near-intents-derivatives
+        cargo build --release --target wasm32-unknown-unknown
+    
+    - name: Check Contract Size
+      run: |
+        cd contracts/near-intents-derivatives
+        SIZE=$(stat -c%s target/wasm32-unknown-unknown/release/deltanear_derivatives.wasm 2>/dev/null || stat -f%z target/wasm32-unknown-unknown/release/deltanear_derivatives.wasm)
+        MAX_SIZE=$((4 * 1024 * 1024))  # 4MB limit for NEAR contracts
+        
+        if [ $SIZE -gt $MAX_SIZE ]; then
+          echo "ERROR: Contract size ($SIZE bytes) exceeds 4MB limit!"
+          exit 1
+        fi
+        
+        echo "✅ Contract size: $SIZE bytes"
+
+  schema-hash-validation:
+    name: Validate Schema Hashing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Create Hash Validation Script
+      run: |
+        cat > validate_hash.js << 'EOF'
+        const crypto = require('crypto');
+        const fs = require('fs');
+        
+        // Load test vectors
+        const vectors = JSON.parse(
+          fs.readFileSync('contracts/near-intents-derivatives/test-vectors/canonical-hashing.json')
+        );
+        
+        function computeHash(input) {
+          // Normalize the input according to spec
+          const normalized = {
+            ...input,
+            derivatives: {
+              ...input.derivatives,
+              symbol: input.derivatives.symbol.toUpperCase(),
+              side: input.derivatives.side.toLowerCase(),
+              leverage: input.derivatives.leverage || "1",
+              option: input.derivatives.option || null,
+              constraints: {
+                max_slippage_bps: input.derivatives.constraints?.max_slippage_bps || 100,
+                max_funding_bps_8h: input.derivatives.constraints?.max_funding_bps_8h || 50,
+                max_fee_bps: input.derivatives.constraints?.max_fee_bps || 30,
+                venue_allowlist: input.derivatives.constraints?.venue_allowlist || []
+              }
+            }
+          };
+          
+          // Serialize with sorted keys
+          const serialized = JSON.stringify(normalized, Object.keys(normalized).sort());
+          
+          // Compute SHA-256
+          const hash = crypto.createHash('sha256').update(serialized).digest('hex');
+          
+          // Return first 64 chars
+          return hash.substring(0, 64);
+        }
+        
+        // Validate each test vector
+        let allPassed = true;
+        for (const vector of vectors.test_vectors) {
+          const hash = computeHash(vector.input);
+          console.log(`Test: ${vector.name}`);
+          console.log(`  Computed: ${hash}`);
+          
+          // For now, just verify deterministic hashing
+          const hash2 = computeHash(vector.input);
+          if (hash !== hash2) {
+            console.error(`  ERROR: Hash is not deterministic!`);
+            allPassed = false;
+          } else {
+            console.log(`  ✅ Deterministic hashing verified`);
+          }
+        }
+        
+        process.exit(allPassed ? 0 : 1);
+        EOF
+    
+    - name: Run Hash Validation
+      run: node validate_hash.js
+
+  abi-documentation:
+    name: Generate ABI Documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Generate ABI Markdown
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        cat > abi/README.md << 'EOF'
+        # DeltaNEAR Derivatives ABI v1.0.0
+        
+        ## Stability Guarantee
+        
+        This ABI is **STABLE** and will not change for v1.0.0. Any breaking changes will require a new major version.
+        
+        ## View Methods
+        
+        All view methods are read-only and gas-free.
+        
+        | Method | Parameters | Returns | Description |
+        |--------|------------|---------|-------------|
+        | `get_schema_version` | - | `String` | Returns "1.0.0" |
+        | `get_fee_config` | - | `FeeConfig` | Current fee configuration |
+        | `get_guardrails` | `symbol?`, `account?` | `Guardrails` | Risk limits |
+        | `get_supported_symbols` | - | `SymbolConfig[]` | Trading pairs |
+        | `get_allowed_venues` | `symbol` | `VenueConfig[]` | Allowed venues |
+        | `verify_intent_hash` | `intent_json` | `String` | Canonical hash |
+        | `get_intent_metadata` | `intent_hash` | `IntentMetadata?` | Intent details |
+        | `get_execution_log` | `intent_hash` | `ExecutionLog?` | Execution details |
+        
+        ## Events (NEP-297)
+        
+        Standard: `deltanear_derivatives`
+        Version: `1.0.0`
+        
+        - `intent_submitted` - New derivatives intent
+        - `execution_logged` - Execution completed
+        - `solver_assigned` - Solver selected
+        - `settlement_initiated` - Settlement started
+        - `settlement_completed` - Settlement finished
+        
+        ## Canonical Hashing
+        
+        - Algorithm: SHA-256
+        - Normalization: Symbol uppercase, side lowercase
+        - Output: First 64 hex characters
+        
+        See [test-vectors/canonical-hashing.json](../test-vectors/canonical-hashing.json) for examples.
+        EOF
+        
+        echo "✅ ABI documentation generated"

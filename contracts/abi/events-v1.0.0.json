@@ -1,0 +1,308 @@
+{
+  "schema_version": "1.0.0",
+  "standard": "NEP-297",
+  "events": [
+    {
+      "event": "intent_received",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "signer_id", "instrument", "symbol", "side", "size", "timestamp"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of canonical intent"
+          },
+          "signer_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+$",
+            "description": "NEAR account ID of intent signer"
+          },
+          "instrument": {
+            "type": "string",
+            "enum": ["perp", "option", "future"]
+          },
+          "symbol": {
+            "type": "string",
+            "pattern": "^[A-Z]+-[A-Z]+$"
+          },
+          "side": {
+            "type": "string",
+            "enum": ["long", "short", "buy", "sell"]
+          },
+          "size": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "metadata_checksum": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 of preserved metadata"
+          },
+          "timestamp": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "event": "intent_simulated",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "status", "simulation_hash"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["success", "failed", "warning"]
+          },
+          "simulation_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Hash of simulation parameters for replay verification"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "estimated_fill": {
+            "type": "string"
+          },
+          "estimated_fees": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    {
+      "event": "intent_executed",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "venue", "fill_price", "filled_size", "status"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "simulation_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Must match prior simulation"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "fill_price": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "filled_size": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "notional": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "fees_paid": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["filled", "partial", "rejected", "expired"]
+          },
+          "chain_signature": {
+            "type": "string",
+            "description": "MPC signature for cross-chain execution"
+          },
+          "external_tx": {
+            "type": "string",
+            "description": "Transaction hash on execution chain"
+          }
+        }
+      }
+    },
+    {
+      "event": "settlement_initiated",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "token_diffs"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "token_diffs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["account_id", "token_id", "amount_delta", "direction"],
+              "properties": {
+                "account_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_.-]+$"
+                },
+                "token_id": {
+                  "type": "string",
+                  "pattern": "^nep141:[a-z0-9_.-]+$"
+                },
+                "amount_delta": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["credit", "debit"]
+                }
+              }
+            }
+          },
+          "pnl": {
+            "type": "string",
+            "description": "Net P&L in settlement token"
+          }
+        }
+      }
+    },
+    {
+      "event": "settlement_completed",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "canonical_verifier_receipt", "final_balances"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "canonical_verifier_receipt": {
+            "type": "string",
+            "description": "Receipt ID from intents.testnet"
+          },
+          "final_balances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "account_id": { "type": "string" },
+                "token_id": { "type": "string" },
+                "balance": { "type": "string" }
+              }
+            }
+          },
+          "metadata_preserved": {
+            "type": "boolean",
+            "description": "Whether metadata checksum matched end-to-end"
+          }
+        }
+      }
+    },
+    {
+      "event": "simulation_required",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "reason"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["no_prior_simulation", "simulation_expired", "simulation_hash_mismatch"]
+          },
+          "attempted_execution": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "event": "metadata_checksum_mismatch",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "expected", "received", "stage"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "expected": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "received": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "stage": {
+            "type": "string",
+            "enum": ["1click_submission", "solver_receipt", "venue_execution", "settlement"]
+          }
+        }
+      }
+    },
+    {
+      "event": "error",
+      "version": "1.0.0",
+      "schema": {
+        "type": "object",
+        "required": ["intent_hash", "error_code", "error_message", "stage"],
+        "properties": {
+          "intent_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "error_code": {
+            "type": "string",
+            "enum": [
+              "INVALID_SIGNATURE",
+              "EXPIRED_INTENT",
+              "INSUFFICIENT_COLLATERAL",
+              "VENUE_UNAVAILABLE",
+              "CHAIN_SIGNATURE_FAILED",
+              "SETTLEMENT_FAILED",
+              "GUARDRAIL_VIOLATION",
+              "SIMULATION_REQUIRED",
+              "UNKNOWN_ERROR"
+            ]
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string",
+            "enum": ["validation", "simulation", "execution", "settlement"]
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  ]
+}

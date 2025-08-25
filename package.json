@@ -1,0 +1,46 @@
+{
+  "name": "deltanear",
+  "version": "1.0.0",
+  "description": "NEAR Intents with cross-chain derivatives execution",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "proto"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:unit": "pnpm -r test:unit",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:e2e": "jest --config jest.e2e.config.js",
+    "test:testnet": "node scripts/test-testnet.js",
+    "test:coverage": "pnpm -r test:coverage && pnpm coverage:merge",
+    "coverage:merge": "nyc merge coverage coverage/merged && nyc report -t coverage/merged --report-dir coverage/final --reporter=lcov --reporter=text",
+    "deploy:testnet": "./scripts/deploy-testnet.sh",
+    "dev": "pnpm -r --parallel dev",
+    "demo:perp": "node scripts/demo-perp.js",
+    "demo:option": "node scripts/demo-option.js",
+    "clean": "pnpm -r clean && rm -rf node_modules coverage",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@near-js/accounts": "^2.2.5",
+    "@near-js/keystores-node": "^2.2.5",
+    "@near-js/providers": "^2.2.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "commander": "^14.0.0",
+    "dotenv": "^16.6.1",
+    "jest": "^30.0.5",
+    "near-api-js": "^6.2.5",
+    "near-workspaces": "^5.0.0",
+    "nyc": "^17.1.0",
+    "ts-jest": "^29.4.1",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

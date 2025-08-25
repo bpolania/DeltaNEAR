@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  near-sandbox:
+    image: nearprotocol/nearcore:latest
+    container_name: near-sandbox
+    ports:
+      - "3030:3030"
+    volumes:
+      - near-data:/root/.near
+    command: ["--home=/root/.near", "run"]
+    environment:
+      - NEAR_ENV=localnet
+    networks:
+      - deltanear
+
+  ofa-gateway:
+    build:
+      context: ./services/ofa-gateway
+      dockerfile: Dockerfile
+    container_name: ofa-gateway
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+    networks:
+      - deltanear
+    depends_on:
+      - near-sandbox
+    restart: unless-stopped
+
+  solver-1:
+    build:
+      context: ./services/solver-node
+      dockerfile: Dockerfile
+    container_name: solver-1
+    environment:
+      - SOLVER_ID=solver-1
+      - GATEWAY_URL=ws://ofa-gateway:3001
+      - SUPPORTED_VENUES=gmx-v2,lyra-v2
+      - MAX_EXPOSURE=1000000
+      - NEAR_ACCOUNT=solver1.testnet
+      - NEAR_PRIVATE_KEY=${SOLVER1_PRIVATE_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+    networks:
+      - deltanear
+    depends_on:
+      - ofa-gateway
+    restart: unless-stopped
+
+  solver-2:
+    build:
+      context: ./services/solver-node
+      dockerfile: Dockerfile
+    container_name: solver-2
+    environment:
+      - SOLVER_ID=solver-2
+      - GATEWAY_URL=ws://ofa-gateway:3001
+      - SUPPORTED_VENUES=gmx-v2
+      - MAX_EXPOSURE=500000
+      - NEAR_ACCOUNT=solver2.testnet
+      - NEAR_PRIVATE_KEY=${SOLVER2_PRIVATE_KEY:-0000000000000000000000000000000000000000000000000000000000000001}
+    networks:
+      - deltanear
+    depends_on:
+      - ofa-gateway
+    restart: unless-stopped
+
+networks:
+  deltanear:
+    driver: bridge
+
+volumes:
+  near-data:

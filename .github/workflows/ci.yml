@@ -1,0 +1,252 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  RUST_VERSION: 1.75.0
+  NODE_VERSION: 20.x
+  PNPM_VERSION: 8
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  test-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+          components: rustfmt, clippy
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/near-intents-derivatives
+      
+      - name: Check formatting
+        run: |
+          cd contracts/near-intents-derivatives
+          cargo fmt -- --check
+      
+      - name: Run clippy
+        run: |
+          cd contracts/near-intents-derivatives
+          cargo clippy -- -D warnings
+      
+      - name: Run tests
+        run: |
+          cd contracts/near-intents-derivatives
+          cargo test --all-features
+      
+      - name: Build contract
+        run: |
+          cd contracts/near-intents-derivatives
+          cargo build --release --target wasm32-unknown-unknown
+
+  test-services:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [proto, ofa-gateway, solver-node]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      
+      - name: Run unit tests
+        run: |
+          if [ "${{ matrix.package }}" = "proto" ]; then
+            cd proto
+          else
+            cd services/${{ matrix.package }}
+          fi
+          pnpm test --coverage
+      
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-${{ matrix.package }}
+          path: |
+            proto/coverage/
+            services/${{ matrix.package }}/coverage/
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [test-services, test-contracts]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      
+      - name: Run integration tests
+        run: pnpm test:integration
+        env:
+          TEST_TYPE: integration
+      
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: test-results/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    services:
+      near:
+        image: nearprotocol/nearcore:latest
+        ports:
+          - 3030:3030
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+      
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      
+      - name: Build NEAR contract
+        run: |
+          cd contracts/near-intents-derivatives
+          cargo build --release --target wasm32-unknown-unknown
+      
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          TEST_TYPE: e2e
+          NEAR_ENV: localnet
+      
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: test-results/
+
+  coverage-report:
+    runs-on: ubuntu-latest
+    needs: [test-services, integration-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: coverage
+      
+      - name: Merge coverage reports
+        run: |
+          npx nyc merge coverage coverage/merged
+          npx nyc report -t coverage/merged --reporter=lcov --reporter=text
+      
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Gateway image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/ofa-gateway
+          push: false
+          tags: deltanear/ofa-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build Solver image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/solver-node
+          push: false
+          tags: deltanear/solver-node:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test Docker Compose
+        run: |
+          docker compose up -d
+          sleep 10
+          docker compose ps
+          docker compose logs
+          docker compose down

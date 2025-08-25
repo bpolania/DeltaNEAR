@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.0.0",
+  "contract_name": "deltanear-derivatives",
+  "contract_version": "1.0.0",
+  "abi_stability": "STABLE",
+  "methods": {
+    "view": [
+      {
+        "name": "get_schema_version",
+        "params": [],
+        "returns": "String",
+        "description": "Returns the current schema version (1.0.0)",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_fee_config",
+        "params": [],
+        "returns": {
+          "type": "object",
+          "properties": {
+            "protocol_fee_bps": { "type": "u16" },
+            "solver_rebate_bps": { "type": "u16" },
+            "min_fee_usdc": { "type": "String" },
+            "max_fee_bps": { "type": "u16" },
+            "treasury": { "type": "AccountId" }
+          }
+        },
+        "description": "Returns the current fee configuration",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_guardrails",
+        "params": [
+          { "name": "symbol", "type": "Option<String>" },
+          { "name": "account", "type": "Option<AccountId>" }
+        ],
+        "returns": {
+          "type": "object",
+          "properties": {
+            "max_position_size": { "type": "String" },
+            "max_leverage": { "type": "String" },
+            "max_daily_volume": { "type": "String" },
+            "allowed_instruments": { "type": "Vec<String>" },
+            "cooldown_seconds": { "type": "u32" }
+          }
+        },
+        "description": "Returns guardrails for a symbol or account",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_supported_symbols",
+        "params": [],
+        "returns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "symbol": { "type": "String" },
+              "instruments": { "type": "Vec<String>" },
+              "min_size": { "type": "String" },
+              "max_size": { "type": "String" },
+              "tick_size": { "type": "String" }
+            }
+          }
+        },
+        "description": "Returns all supported trading symbols",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_allowed_venues",
+        "params": [
+          { "name": "symbol", "type": "String", "required": true }
+        ],
+        "returns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "venue_id": { "type": "String" },
+              "chain": { "type": "String" },
+              "supported_instruments": { "type": "Vec<String>" },
+              "fee_bps": { "type": "u16" }
+            }
+          }
+        },
+        "description": "Returns allowed venues for a symbol",
+        "stability": "STABLE"
+      },
+      {
+        "name": "verify_intent_hash",
+        "params": [
+          { "name": "intent_json", "type": "String", "required": true }
+        ],
+        "returns": "String",
+        "description": "Computes the canonical hash for an intent",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_intent_metadata",
+        "params": [
+          { "name": "intent_hash", "type": "String", "required": true }
+        ],
+        "returns": {
+          "type": "Option",
+          "value": {
+            "type": "object",
+            "properties": {
+              "intent_hash": { "type": "String" },
+              "instrument": { "type": "String" },
+              "symbol": { "type": "String" },
+              "side": { "type": "String" },
+              "size": { "type": "String" },
+              "leverage": { "type": "Option<String>" },
+              "strike": { "type": "Option<String>" },
+              "expiry": { "type": "Option<String>" },
+              "solver_id": { "type": "AccountId" },
+              "created_at": { "type": "u64" }
+            }
+          }
+        },
+        "description": "Returns metadata for an intent",
+        "stability": "STABLE"
+      },
+      {
+        "name": "get_execution_log",
+        "params": [
+          { "name": "intent_hash", "type": "String", "required": true }
+        ],
+        "returns": {
+          "type": "Option",
+          "value": {
+            "type": "object",
+            "properties": {
+              "intent_hash": { "type": "String" },
+              "solver_id": { "type": "AccountId" },
+              "venue": { "type": "String" },
+              "fill_price": { "type": "String" },
+              "notional": { "type": "U128" },
+              "fees_bps": { "type": "u16" },
+              "pnl": { "type": "Option<String>" },
+              "status": { "type": "String" },
+              "timestamp": { "type": "u64" }
+            }
+          }
+        },
+        "description": "Returns execution log for an intent",
+        "stability": "STABLE"
+      }
+    ],
+    "change": [
+      {
+        "name": "store_intent_metadata",
+        "params": [
+          { "name": "intent_hash", "type": "String", "required": true },
+          { "name": "metadata", "type": "IntentMetadata", "required": true }
+        ],
+        "description": "Stores intent metadata",
+        "stability": "STABLE"
+      },
+      {
+        "name": "log_execution",
+        "params": [
+          { "name": "intent_hash", "type": "String", "required": true },
+          { "name": "log", "type": "ExecutionLog", "required": true }
+        ],
+        "description": "Logs execution details",
+        "stability": "STABLE"
+      }
+    ]
+  },
+  "events": {
+    "standard": "deltanear_derivatives",
+    "version": "1.0.0",
+    "events": [
+      {
+        "name": "intent_submitted",
+        "data": {
+          "intent_hash": { "type": "String", "required": true },
+          "signer_id": { "type": "AccountId", "required": true },
+          "instrument": { "type": "String", "required": true },
+          "symbol": { "type": "String", "required": true },
+          "side": { "type": "String", "required": true },
+          "size": { "type": "String", "required": true },
+          "timestamp": { "type": "u64", "required": true }
+        },
+        "stability": "STABLE"
+      },
+      {
+        "name": "execution_logged",
+        "data": {
+          "intent_hash": { "type": "String", "required": true },
+          "solver_id": { "type": "AccountId", "required": true },
+          "venue": { "type": "String", "required": true },
+          "fill_price": { "type": "String", "required": true },
+          "notional": { "type": "String", "required": true },
+          "status": { "type": "String", "required": true },
+          "timestamp": { "type": "u64", "required": true }
+        },
+        "stability": "STABLE"
+      },
+      {
+        "name": "solver_assigned",
+        "data": {
+          "intent_hash": { "type": "String", "required": true },
+          "solver_id": { "type": "AccountId", "required": true },
+          "timestamp": { "type": "u64", "required": true }
+        },
+        "stability": "STABLE"
+      },
+      {
+        "name": "settlement_initiated",
+        "data": {
+          "intent_hash": { "type": "String", "required": true },
+          "token_diff": { "type": "object", "required": true },
+          "timestamp": { "type": "u64", "required": true }
+        },
+        "stability": "STABLE"
+      },
+      {
+        "name": "settlement_completed",
+        "data": {
+          "intent_hash": { "type": "String", "required": true },
+          "tx_hash": { "type": "String", "required": true },
+          "timestamp": { "type": "u64", "required": true }
+        },
+        "stability": "STABLE"
+      }
+    ]
+  },
+  "canonical_hashing": {
+    "algorithm": "SHA-256",
+    "normalization": {
+      "symbol": "UPPERCASE",
+      "side": "lowercase",
+      "leverage_default": "1",
+      "max_slippage_bps_default": 100,
+      "max_funding_bps_8h_default": 50,
+      "max_fee_bps_default": 30
+    },
+    "serialization": "JSON with sorted keys",
+    "output": "First 64 hex characters"
+  }
+}

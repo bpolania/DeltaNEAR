@@ -1,0 +1,303 @@
+{
+  "schema_version": "1.0.0",
+  "metadata": {
+    "name": "deltanear-derivatives",
+    "version": "1.0.0",
+    "authors": ["DeltaNEAR Team"],
+    "description": "NEAR derivatives intent execution contract with cross-chain settlement",
+    "repository": "https://github.com/deltanear/contracts",
+    "license": "MIT",
+    "standards": ["NEP-297", "NEP-413"],
+    "build_info": {
+      "compiler": "rustc 1.75.0",
+      "builder": "near-sdk-rs 5.0.0",
+      "timestamp": "2024-01-15T00:00:00Z"
+    }
+  },
+  "body": {
+    "functions": [
+      {
+        "name": "execute_intents",
+        "kind": "call",
+        "params": {
+          "intents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/SignedIntent"
+            }
+          }
+        },
+        "return_type": {
+          "$ref": "#/definitions/ExecutionReceipt"
+        },
+        "is_payable": false,
+        "is_private": false,
+        "is_mut": true
+      },
+      {
+        "name": "simulate_intents",
+        "kind": "call",
+        "params": {
+          "intents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/SignedIntent"
+            }
+          }
+        },
+        "return_type": {
+          "$ref": "#/definitions/SimulationResult"
+        },
+        "is_payable": false,
+        "is_private": false,
+        "is_mut": false
+      },
+      {
+        "name": "get_schema_version",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "type": "string",
+          "const": "1.0.0"
+        }
+      },
+      {
+        "name": "get_abi_hash",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "type": "string",
+          "description": "SHA-256 hash of this ABI JSON file"
+        }
+      },
+      {
+        "name": "get_fee_config",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "$ref": "#/definitions/FeeConfig"
+        }
+      },
+      {
+        "name": "get_supported_symbols",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "get_allowed_venues",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "get_guardrails",
+        "kind": "view",
+        "params": {},
+        "return_type": {
+          "$ref": "#/definitions/Guardrails"
+        }
+      },
+      {
+        "name": "verify_intent_hash",
+        "kind": "view",
+        "params": {
+          "intent": {
+            "$ref": "#/definitions/DerivativesIntent"
+          },
+          "expected_hash": {
+            "type": "string"
+          }
+        },
+        "return_type": {
+          "type": "object",
+          "properties": {
+            "valid": { "type": "boolean" },
+            "computed_hash": { "type": "string" },
+            "expected_hash": { "type": "string" }
+          }
+        }
+      },
+      {
+        "name": "get_intent_metadata",
+        "kind": "view",
+        "params": {
+          "intent_hash": {
+            "type": "string"
+          }
+        },
+        "return_type": {
+          "type": "object",
+          "properties": {
+            "checksum": { "type": "string" },
+            "timestamp": { "type": "integer" },
+            "preserved": { "type": "object" }
+          }
+        }
+      },
+      {
+        "name": "get_execution_log",
+        "kind": "view",
+        "params": {
+          "intent_hash": {
+            "type": "string"
+          }
+        },
+        "return_type": {
+          "$ref": "#/definitions/ExecutionLog"
+        }
+      }
+    ],
+    "definitions": {
+      "SignedIntent": {
+        "type": "object",
+        "required": ["intent", "signature", "public_key", "account_id", "nonce", "timestamp"],
+        "properties": {
+          "intent": { "$ref": "#/definitions/DerivativesIntent" },
+          "signature": { "type": "string" },
+          "public_key": { "type": "string" },
+          "account_id": { "type": "string" },
+          "nonce": { "type": "string" },
+          "timestamp": { "type": "integer" }
+        }
+      },
+      "DerivativesIntent": {
+        "type": "object",
+        "required": ["version", "intent_type", "derivatives", "signer_id", "deadline", "nonce"],
+        "properties": {
+          "version": { "type": "string", "const": "1.0.0" },
+          "intent_type": { "type": "string", "const": "derivatives" },
+          "derivatives": { "$ref": "#/definitions/DerivativesAction" },
+          "signer_id": { "type": "string" },
+          "deadline": { "type": "string" },
+          "nonce": { "type": "string" },
+          "metadata": { "type": "object" }
+        }
+      },
+      "DerivativesAction": {
+        "type": "object",
+        "required": ["instrument", "symbol", "side", "size", "collateral"],
+        "properties": {
+          "instrument": { "enum": ["perp", "option", "future"] },
+          "symbol": { "type": "string" },
+          "side": { "enum": ["long", "short", "buy", "sell"] },
+          "size": { "type": "string" },
+          "leverage": { "type": "string" },
+          "limit_price": { "type": "string" },
+          "stop_loss": { "type": "string" },
+          "take_profit": { "type": "string" },
+          "option": { "$ref": "#/definitions/OptionDetails" },
+          "future": { "$ref": "#/definitions/FutureDetails" },
+          "collateral": { "$ref": "#/definitions/CollateralSpec" },
+          "venue_preferences": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "OptionDetails": {
+        "type": "object",
+        "required": ["kind", "strike", "expiry"],
+        "properties": {
+          "kind": { "enum": ["call", "put"] },
+          "strike": { "type": "string" },
+          "expiry": { "type": "string" }
+        }
+      },
+      "FutureDetails": {
+        "type": "object",
+        "required": ["expiry"],
+        "properties": {
+          "expiry": { "type": "string" }
+        }
+      },
+      "CollateralSpec": {
+        "type": "object",
+        "required": ["token", "chain"],
+        "properties": {
+          "token": { "type": "string" },
+          "chain": { "type": "string" },
+          "amount": { "type": "string" }
+        }
+      },
+      "ExecutionReceipt": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "executed": { "type": "array", "items": { "type": "string" } },
+          "failed": { "type": "array", "items": { "type": "object" } },
+          "total_fee": { "type": "string" },
+          "settlements": { "type": "array", "items": { "$ref": "#/definitions/TokenDiff" } }
+        }
+      },
+      "SimulationResult": {
+        "type": "object",
+        "properties": {
+          "valid": { "type": "boolean" },
+          "simulated": { "type": "array" },
+          "errors": { "type": "array" },
+          "estimated_fees": { "type": "string" },
+          "warnings": { "type": "array" }
+        }
+      },
+      "TokenDiff": {
+        "type": "object",
+        "required": ["account_id", "token_id", "amount_delta", "direction"],
+        "properties": {
+          "account_id": { "type": "string" },
+          "token_id": { "type": "string", "pattern": "^nep141:" },
+          "amount_delta": { "type": "string" },
+          "direction": { "enum": ["credit", "debit"] }
+        }
+      },
+      "FeeConfig": {
+        "type": "object",
+        "properties": {
+          "base_fee_bps": { "type": "integer" },
+          "min_fee": { "type": "string" },
+          "max_fee": { "type": "string" },
+          "treasury": { "type": "string" }
+        }
+      },
+      "Guardrails": {
+        "type": "object",
+        "properties": {
+          "max_intents_per_call": { "type": "integer" },
+          "max_size_per_intent": { "type": "string" },
+          "max_leverage": { "type": "string" },
+          "min_collateral": { "type": "string" },
+          "allowed_chains": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "ExecutionLog": {
+        "type": "object",
+        "properties": {
+          "intent_hash": { "type": "string" },
+          "status": { "enum": ["pending", "simulated", "executed", "settled", "failed"] },
+          "venue": { "type": "string" },
+          "fill_price": { "type": "string" },
+          "filled_size": { "type": "string" },
+          "fees_paid": { "type": "string" },
+          "chain_signature": { "type": "string" },
+          "external_tx": { "type": "string" },
+          "timestamps": {
+            "type": "object",
+            "properties": {
+              "received": { "type": "integer" },
+              "simulated": { "type": "integer" },
+              "executed": { "type": "integer" },
+              "settled": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

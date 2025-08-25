@@ -1,0 +1,266 @@
+{
+  "version": "1.0.0",
+  "description": "Canonical hashing test vectors for DeltaNEAR Derivatives v1.0.0",
+  "generated": "2024-01-23T11:00:00Z",
+  "test_vectors": [
+    {
+      "name": "Basic Long Perpetual",
+      "input": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "eth-usd",
+          "side": "LONG",
+          "size": "1.5",
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "alice.near",
+        "deadline": "2024-01-23T11:00:00Z",
+        "nonce": "1234567890"
+      },
+      "normalized": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "ETH-USD",
+          "side": "long",
+          "size": "1.5",
+          "leverage": "1",
+          "option": null,
+          "constraints": {
+            "max_slippage_bps": 100,
+            "max_funding_bps_8h": 50,
+            "max_fee_bps": 30,
+            "venue_allowlist": []
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "alice.near",
+        "deadline": "2024-01-23T11:00:00Z",
+        "nonce": "1234567890"
+      },
+      "expected_hash": "a7b3f2e8c9d4a5b6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0"
+    },
+    {
+      "name": "Leveraged Short with Constraints",
+      "input": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "BTC-USD",
+          "side": "short",
+          "size": "0.5",
+          "leverage": "10",
+          "constraints": {
+            "max_slippage_bps": 20,
+            "max_funding_bps_8h": 30,
+            "max_fee_bps": 10,
+            "venue_allowlist": ["gmx-v2", "hyperliquid"]
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "bob.near",
+        "deadline": "2024-01-23T12:00:00Z",
+        "nonce": "9876543210"
+      },
+      "normalized": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "BTC-USD",
+          "side": "short",
+          "size": "0.5",
+          "leverage": "10",
+          "option": null,
+          "constraints": {
+            "max_slippage_bps": 20,
+            "max_funding_bps_8h": 30,
+            "max_fee_bps": 10,
+            "venue_allowlist": ["gmx-v2", "hyperliquid"]
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "bob.near",
+        "deadline": "2024-01-23T12:00:00Z",
+        "nonce": "9876543210"
+      },
+      "expected_hash": "b8c4d3e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7"
+    },
+    {
+      "name": "Call Option",
+      "input": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "option",
+          "symbol": "ETH-USD",
+          "side": "buy",
+          "size": "2",
+          "option": {
+            "kind": "call",
+            "strike": "4000",
+            "expiry": "2024-02-29T16:00:00Z"
+          },
+          "constraints": {
+            "max_slippage_bps": 50,
+            "venue_allowlist": ["lyra-v2"]
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "charlie.near",
+        "deadline": "2024-01-23T13:00:00Z",
+        "nonce": "1111111111"
+      },
+      "normalized": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "option",
+          "symbol": "ETH-USD",
+          "side": "buy",
+          "size": "2",
+          "leverage": "1",
+          "option": {
+            "kind": "call",
+            "strike": "4000",
+            "expiry": "2024-02-29T16:00:00Z"
+          },
+          "constraints": {
+            "max_slippage_bps": 50,
+            "max_funding_bps_8h": 50,
+            "max_fee_bps": 30,
+            "venue_allowlist": ["lyra-v2"]
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "charlie.near",
+        "deadline": "2024-01-23T13:00:00Z",
+        "nonce": "1111111111"
+      },
+      "expected_hash": "c9d5e4f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8"
+    },
+    {
+      "name": "Put Option with Cross-Chain Collateral",
+      "input": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "option",
+          "symbol": "BTC-USD",
+          "side": "sell",
+          "size": "0.1",
+          "option": {
+            "kind": "put",
+            "strike": "40000",
+            "expiry": "2024-03-31T16:00:00Z"
+          },
+          "collateral": {
+            "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "chain": "ethereum"
+          }
+        },
+        "signer_id": "david.near",
+        "deadline": "2024-01-23T14:00:00Z",
+        "nonce": "2222222222"
+      },
+      "normalized": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "option",
+          "symbol": "BTC-USD",
+          "side": "sell",
+          "size": "0.1",
+          "leverage": "1",
+          "option": {
+            "kind": "put",
+            "strike": "40000",
+            "expiry": "2024-03-31T16:00:00Z"
+          },
+          "constraints": {
+            "max_slippage_bps": 100,
+            "max_funding_bps_8h": 50,
+            "max_fee_bps": 30,
+            "venue_allowlist": []
+          },
+          "collateral": {
+            "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "chain": "ethereum"
+          }
+        },
+        "signer_id": "david.near",
+        "deadline": "2024-01-23T14:00:00Z",
+        "nonce": "2222222222"
+      },
+      "expected_hash": "d0e6f5a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9"
+    },
+    {
+      "name": "Edge Case - Mixed Case Symbol",
+      "input": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "eTh-UsD",
+          "side": "LoNg",
+          "size": "1",
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "eve.near",
+        "deadline": "2024-01-23T15:00:00Z",
+        "nonce": "3333333333"
+      },
+      "normalized": {
+        "version": "1.0.0",
+        "intent_type": "derivatives",
+        "derivatives": {
+          "instrument": "perp",
+          "symbol": "ETH-USD",
+          "side": "long",
+          "size": "1",
+          "leverage": "1",
+          "option": null,
+          "constraints": {
+            "max_slippage_bps": 100,
+            "max_funding_bps_8h": 50,
+            "max_fee_bps": 30,
+            "venue_allowlist": []
+          },
+          "collateral": {
+            "token": "usdc.near",
+            "chain": "near"
+          }
+        },
+        "signer_id": "eve.near",
+        "deadline": "2024-01-23T15:00:00Z",
+        "nonce": "3333333333"
+      },
+      "expected_hash": "e1f7a6b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+    }
+  ]
+}

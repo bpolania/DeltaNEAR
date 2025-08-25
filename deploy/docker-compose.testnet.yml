@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  ofa-gateway:
+    build:
+      context: ../services/ofa-gateway
+      dockerfile: Dockerfile
+    container_name: deltanear-gateway-testnet
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEAR_ENV=testnet
+      - PORT=3000
+      - CONTRACT_ADDRESS=${CONTRACT_NAME}
+      - NEAR_NODE_URL=https://rpc.testnet.near.org
+      - CORS_ORIGINS=https://deltanear.app,https://www.deltanear.app
+    volumes:
+      - ./gateway-config.json:/app/config.json:ro
+      - ./logs/gateway:/app/logs
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gateway.rule=Host(`gateway.deltanear.app`)"
+      - "traefik.http.routers.gateway.tls=true"
+      - "traefik.http.routers.gateway.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gateway.loadbalancer.server.port=3000"
+
+  solver-1:
+    build:
+      context: ../services/solver-node
+      dockerfile: Dockerfile
+    container_name: deltanear-solver1-testnet
+    environment:
+      - NODE_ENV=production
+      - NEAR_ENV=testnet
+      - SOLVER_ID=solver-1
+      - GATEWAY_URL=wss://gateway.deltanear.app
+      - NEAR_ACCOUNT=${SOLVER1_ACCOUNT}
+      - NEAR_PRIVATE_KEY=${SOLVER1_PRIVATE_KEY}
+      - SUPPORTED_VENUES=gmx-v2,lyra-v2
+      - MAX_EXPOSURE=1000000
+    volumes:
+      - ./solver1-config.json:/app/config.json:ro
+      - ./logs/solver1:/app/logs
+      - ./keys/solver1.json:/app/keys/near-credentials.json:ro
+    restart: unless-stopped
+    depends_on:
+      - ofa-gateway
+
+  solver-2:
+    build:
+      context: ../services/solver-node
+      dockerfile: Dockerfile
+    container_name: deltanear-solver2-testnet
+    environment:
+      - NODE_ENV=production
+      - NEAR_ENV=testnet
+      - SOLVER_ID=solver-2
+      - GATEWAY_URL=wss://gateway.deltanear.app
+      - NEAR_ACCOUNT=${SOLVER2_ACCOUNT}
+      - NEAR_PRIVATE_KEY=${SOLVER2_PRIVATE_KEY}
+      - SUPPORTED_VENUES=gmx-v2
+      - MAX_EXPOSURE=500000
+    volumes:
+      - ./solver2-config.json:/app/config.json:ro
+      - ./logs/solver2:/app/logs
+      - ./keys/solver2.json:/app/keys/near-credentials.json:ro
+    restart: unless-stopped
+    depends_on:
+      - ofa-gateway
+
+  traefik:
+    image: traefik:v2.10
+    container_name: deltanear-proxy
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@deltanear.app"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: deltanear-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: deltanear-grafana
+    ports:
+      - "3030:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    driver: bridge

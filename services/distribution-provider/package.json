@@ -1,0 +1,29 @@
+{
+  "name": "@deltanear/distribution-provider",
+  "version": "1.0.0",
+  "description": "Distribution provider abstraction for NEAR Intents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:unit": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deltanear/proto": "workspace:*",
+    "axios": "^1.8.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.13",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}

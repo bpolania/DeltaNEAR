@@ -1,0 +1,41 @@
+{
+  "name": "@deltanear/solver-node",
+  "version": "1.0.0",
+  "description": "Solver node for DeltaNEAR derivatives execution",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:unit": "jest",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linting configured'"
+  },
+  "dependencies": {
+    "@deltanear/proto": "file:../../packages/proto",
+    "@solana/web3.js": "^1.87.0",
+    "axios": "^1.6.0",
+    "bn.js": "^5.2.1",
+    "decimal.js": "^10.4.0",
+    "dotenv": "^16.0.0",
+    "ethers": "^6.9.0",
+    "pino": "^8.0.0",
+    "pino-pretty": "^10.0.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.5",
+    "@types/bs58": "^5.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "bs58": "^6.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

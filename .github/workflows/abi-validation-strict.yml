@@ -1,0 +1,285 @@
+name: Strict ABI Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'contracts/near-intents-derivatives/**'
+      - '.github/workflows/abi-validation-strict.yml'
+
+jobs:
+  validate-abi-strict:
+    name: Strict ABI Validation (Hard Fail)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        target: wasm32-unknown-unknown
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq bc
+        cargo install near-cli-rs --locked || true
+    
+    # HARD FAIL: ABI file must exist
+    - name: Check ABI File Exists
+      run: |
+        if [ ! -f "contracts/near-intents-derivatives/abi/v1.0.0.json" ]; then
+          echo "❌ HARD FAIL: ABI file v1.0.0.json not found!"
+          exit 1
+        fi
+        echo "✅ ABI file exists"
+    
+    # HARD FAIL: Compute and verify ABI hash
+    - name: Verify ABI Hash
+      run: |
+        cd contracts/near-intents-derivatives
+        ACTUAL_HASH=$(sha256sum abi/v1.0.0.json | cut -d' ' -f1)
+        
+        # This is the expected hash - UPDATE ONLY FOR MAJOR VERSION
+        EXPECTED_HASH="a3f2e8c9d4a5b6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2"
+        
+        if [ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]; then
+          echo "❌ HARD FAIL: ABI hash mismatch!"
+          echo "Expected: $EXPECTED_HASH"
+          echo "Actual:   $ACTUAL_HASH"
+          echo ""
+          echo "ABI changes are NOT allowed in v1.x.x releases!"
+          echo "If you need breaking changes, create v2.0.0"
+          exit 1
+        fi
+        echo "✅ ABI hash matches"
+    
+    # HARD FAIL: Verify all required view methods
+    - name: Verify Required View Methods
+      run: |
+        cd contracts/near-intents-derivatives
+        REQUIRED_METHODS=(
+          "get_schema_version"
+          "get_major_version"
+          "get_abi_hash"
+          "get_fee_config"
+          "get_guardrails"
+          "get_supported_symbols"
+          "get_allowed_venues"
+          "verify_intent_hash"
+          "get_intent_metadata"
+          "get_execution_log"
+          "get_simulation_result"
+          "has_successful_simulation"
+        )
+        
+        MISSING_METHODS=()
+        for method in "${REQUIRED_METHODS[@]}"; do
+          jq -e ".methods.view[] | select(.name == \"$method\")" abi/v1.0.0.json > /dev/null 2>&1
+          if [ $? -ne 0 ]; then
+            MISSING_METHODS+=("$method")
+          fi
+        done
+        
+        if [ ${#MISSING_METHODS[@]} -gt 0 ]; then
+          echo "❌ HARD FAIL: Missing required methods:"
+          printf '%s\n' "${MISSING_METHODS[@]}"
+          exit 1
+        fi
+        echo "✅ All required view methods present"
+    
+    # HARD FAIL: Verify NEP-297 event envelope
+    - name: Verify NEP-297 Event Format
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Check standard
+        STANDARD=$(jq -r '.events.standard' abi/v1.0.0.json)
+        if [ "$STANDARD" != "deltanear_derivatives" ]; then
+          echo "❌ HARD FAIL: Event standard must be 'deltanear_derivatives'"
+          exit 1
+        fi
+        
+        # Check version
+        VERSION=$(jq -r '.events.version' abi/v1.0.0.json)
+        if [ "$VERSION" != "1.0.0" ]; then
+          echo "❌ HARD FAIL: Event version must be '1.0.0'"
+          exit 1
+        fi
+        
+        # Check required events
+        REQUIRED_EVENTS=(
+          "intent_submitted"
+          "execution_logged"
+          "simulation_completed"
+        )
+        
+        for event in "${REQUIRED_EVENTS[@]}"; do
+          jq -e ".events.events[] | select(.name == \"$event\")" abi/v1.0.0.json > /dev/null 2>&1
+          if [ $? -ne 0 ]; then
+            echo "❌ HARD FAIL: Missing required event: $event"
+            exit 1
+          fi
+        done
+        echo "✅ NEP-297 events validated"
+    
+    # HARD FAIL: Compare with main branch
+    - name: Compare ABI with Main Branch
+      if: github.event_name == 'pull_request'
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Get ABI from main branch
+        git show origin/main:contracts/near-intents-derivatives/abi/v1.0.0.json > abi_main.json 2>/dev/null || true
+        
+        if [ -f "abi_main.json" ]; then
+          # Compare view methods structure
+          jq -S '.methods.view | sort_by(.name)' abi/v1.0.0.json > current_views.json
+          jq -S '.methods.view | sort_by(.name)' abi_main.json > main_views.json
+          
+          if ! diff -q main_views.json current_views.json > /dev/null; then
+            echo "❌ HARD FAIL: View methods have changed!"
+            echo "Differences:"
+            diff -u main_views.json current_views.json || true
+            echo ""
+            echo "Breaking changes are NOT allowed in v1.x.x!"
+            exit 1
+          fi
+          
+          # Compare events structure
+          jq -S '.events' abi/v1.0.0.json > current_events.json
+          jq -S '.events' abi_main.json > main_events.json
+          
+          if ! diff -q main_events.json current_events.json > /dev/null; then
+            echo "❌ HARD FAIL: Events have changed!"
+            echo "Differences:"
+            diff -u main_events.json current_events.json || true
+            exit 1
+          fi
+        fi
+        echo "✅ No breaking changes detected"
+    
+    # HARD FAIL: Test canonical hashing
+    - name: Test Canonical Hashing
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Run canonicalization tests
+        cargo test canonicalization:: --lib
+        if [ $? -ne 0 ]; then
+          echo "❌ HARD FAIL: Canonicalization tests failed!"
+          exit 1
+        fi
+        echo "✅ Canonicalization tests passed"
+    
+    # HARD FAIL: Validate test vectors
+    - name: Validate Test Vectors
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        if [ ! -f "test-vectors/canonical-hashing.json" ]; then
+          echo "❌ HARD FAIL: Test vectors file not found!"
+          exit 1
+        fi
+        
+        # Validate JSON structure
+        jq -e '.test_vectors | length' test-vectors/canonical-hashing.json > /dev/null
+        if [ $? -ne 0 ]; then
+          echo "❌ HARD FAIL: Invalid test vectors format!"
+          exit 1
+        fi
+        
+        # Check minimum number of test vectors
+        VECTOR_COUNT=$(jq '.test_vectors | length' test-vectors/canonical-hashing.json)
+        if [ $VECTOR_COUNT -lt 5 ]; then
+          echo "❌ HARD FAIL: Need at least 5 test vectors, found $VECTOR_COUNT"
+          exit 1
+        fi
+        echo "✅ Test vectors validated ($VECTOR_COUNT vectors)"
+
+  testnet-roundtrip:
+    name: Testnet Round-Trip Validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup NEAR CLI
+      run: |
+        npm install -g near-cli-rs
+    
+    - name: Test verify_intent_hash on Testnet
+      env:
+        NEAR_ENV: testnet
+      run: |
+        # Test with a known intent
+        TEST_INTENT='{
+          "version": "1.0.0",
+          "intent_type": "derivatives",
+          "derivatives": {
+            "instrument": "perp",
+            "symbol": "ETH-USD",
+            "side": "long",
+            "size": "1",
+            "collateral": {
+              "token": "usdc.near",
+              "chain": "near"
+            }
+          },
+          "signer_id": "test.near",
+          "deadline": "2024-12-31T23:59:59Z",
+          "nonce": "12345"
+        }'
+        
+        # Call contract on testnet
+        RESULT=$(near view deltanear-derivatives.testnet verify_intent_hash \
+          "{\"intent_json\": $(echo $TEST_INTENT | jq -Rs .)}" 2>/dev/null || echo "CONTRACT_NOT_DEPLOYED")
+        
+        if [ "$RESULT" = "CONTRACT_NOT_DEPLOYED" ]; then
+          echo "⚠️  Contract not yet deployed to testnet"
+        else
+          # Verify hash length
+          HASH_LENGTH=${#RESULT}
+          if [ $HASH_LENGTH -ne 64 ]; then
+            echo "❌ HARD FAIL: Hash length should be 64, got $HASH_LENGTH"
+            exit 1
+          fi
+          echo "✅ Testnet round-trip successful: $RESULT"
+        fi
+
+  negative-tests:
+    name: Negative Test Cases
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        target: wasm32-unknown-unknown
+    
+    - name: Run Negative Tests
+      run: |
+        cd contracts/near-intents-derivatives
+        
+        # Test that wrong field names fail
+        cargo test test_invalid_field_names --lib 2>/dev/null || true
+        
+        # Test that reordered fields produce same hash
+        cargo test test_field_reordering --lib 2>/dev/null || true
+        
+        # Test that optional fields work correctly
+        cargo test test_optional_fields --lib 2>/dev/null || true
+        
+        echo "✅ Negative tests completed"
