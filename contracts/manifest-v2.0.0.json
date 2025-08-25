@@ -54,5 +54,22 @@
       "missing_constraints": "Add default constraints object",
       "collateral_token": "Must be specified explicitly"
     }
+  },
+  "safety_requirements": {
+    "simulation_mandatory": true,
+    "description": "All V2.0.0 intents must pass simulate_intents validation before acceptance",
+    "rationale": "Simulation prevents invalid execution and ensures safety constraints are met",
+    "enforcement": "Contract-level validation rejects intents that fail simulation"
+  },
+  "abi": {
+    "hash": "67e4874cb41e405be0d3e532341adace4137cb30d59b42cb480823624bb4503f",
+    "methods": [
+      "validate_v2_intent",
+      "get_schema_version", 
+      "get_abi_hash",
+      "simulate_intents",
+      "get_intent_metadata",
+      "get_execution_log"
+    ]
   }
 }
