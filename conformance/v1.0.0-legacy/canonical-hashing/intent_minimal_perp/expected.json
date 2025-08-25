@@ -1,0 +1,10 @@
+{
+  "sha256": "0e84af55da759ad7d7a499a00bac1005f28e204e69b7541d8f5a744716807115",
+  "intent_hash": "611ca699e5aa3cb68e0a037fa3983ee4f735090bfe1463602a5c1b53e5c7722f",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 398,
+  "normalization_notes": [
+    "Minimal perpetual intent with required fields only",
+    "Collateral field is mandatory per Rust implementation"
+  ]
+}

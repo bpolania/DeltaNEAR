@@ -1,0 +1,10 @@
+{
+  "sha256": "86edcdd0ad21a6a853eaa9392580d039e4f07ee28f2629fb7e5572d7036dae85",
+  "intent_hash": "d135184784db67efaecfd0cac5049aa3ea668be89952262b20a5f47c98890261",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 471,
+  "normalization_notes": [
+    "Full option with all fields properly structured",
+    "Option params in option object, constraints in constraints object"
+  ]
+}

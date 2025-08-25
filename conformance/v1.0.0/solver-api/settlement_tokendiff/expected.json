@@ -1,0 +1,9 @@
+{
+  "sha256": "ae607ed575cdf16c5b66b5d26adc8cb3d0490a220d712cfd17760c65a73749d0",
+  "intent_hash": "678901234567890123456789012345678901234567890123456789012345abc",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 470,
+  "normalization_notes": [
+    "TokenDiff settlement structure"
+  ]
+}

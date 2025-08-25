@@ -1,0 +1,14 @@
+{
+  "intent_hash": "789012345678901234567890123456789012345678901234567890123456def",
+  "solver_id": "solver1.testnet",
+  "quote": {
+    "price": "2850.50",
+    "size": "1",
+    "fee": "2.85",
+    "expiry": "2024-12-31T23:55:00Z",
+    "venue": "dYdX",
+    "chain": "near"
+  },
+  "status": "success",
+  "timestamp": "2024-12-31T23:50:00Z"
+}

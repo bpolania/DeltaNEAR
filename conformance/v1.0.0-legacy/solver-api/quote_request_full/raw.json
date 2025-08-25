@@ -1,0 +1,34 @@
+{
+  "intent_hash": "def456789012345678901234567890123456789012345678901234567890abc",
+  "intent": {
+    "version": "1.0.0",
+    "intent_type": "derivatives",
+    "derivatives": {
+      "instrument": "option",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "size": "0.5",
+      "collateral": {
+        "token": "USDC",
+        "chain": "near"
+      },
+      "option": {
+        "kind": "call",
+        "strike": "60000",
+        "expiry": "2025-03-31T00:00:00Z"
+      }
+    },
+    "signer_id": "trader.testnet",
+    "deadline": "2024-12-30T23:59:59Z",
+    "nonce": "quote-req-full-001"
+  },
+  "solver_id": "premium-solver.testnet",
+  "preferences": {
+    "max_slippage": "0.02",
+    "min_fill_rate": "0.95",
+    "preferred_chains": [
+      "near",
+      "ethereum"
+    ]
+  }
+}

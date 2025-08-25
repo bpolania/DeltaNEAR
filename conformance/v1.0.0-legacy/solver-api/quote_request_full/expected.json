@@ -1,0 +1,9 @@
+{
+  "sha256": "0da469135100c8569157e98351631623b83ef37627c3f6fb63d71fe694b23429",
+  "intent_hash": "def456789012345678901234567890123456789012345678901234567890abc",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 569,
+  "normalization_notes": [
+    "Full quote request with preferences and proper option structure"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "perp",
+    "symbol": "BTC-USD",
+    "side": "long",
+    "size": "1.50000",
+    "leverage": "10.0",
+    "collateral": {
+      "token": "USDT",
+      "chain": "arbitrum"
+    }
+  },
+  "signer_id": "numbers.testnet",
+  "deadline": "2024-12-31T23:59:59Z",
+  "nonce": 12345
+}

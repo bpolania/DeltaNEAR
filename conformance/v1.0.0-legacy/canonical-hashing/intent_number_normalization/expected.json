@@ -1,0 +1,10 @@
+{
+  "sha256": "32244309441c80655bf479b7c333465635356aa63a5390c35533dd106803c425",
+  "intent_hash": "55b6b33a5b4df28b3da0042fff204814dbb9d5bb459a2362dd96b7e4451adb71",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 389,
+  "normalization_notes": [
+    "Trailing zeros removed from size and leverage",
+    "Nonce as number will be converted to string"
+  ]
+}

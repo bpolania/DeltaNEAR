@@ -1,0 +1,61 @@
+{
+  "description": "Golden Reference V2.0.0 Intent - Canonical testnet example",
+  "manifest_version": "2.0.0",
+  "contract": "deltanear-v2-1756106334.testnet",
+  "timestamp": "2025-08-25T00:00:00Z",
+  "intent": {
+    "version": "1.0.0",
+    "intent_type": "derivatives",
+    "derivatives": {
+      "collateral": {
+        "chain": "near",
+        "token": "NEAR"
+      },
+      "constraints": {
+        "max_fee_bps": 30,
+        "max_funding_bps_8h": 50,
+        "max_slippage_bps": 100,
+        "venue_allowlist": [
+          "hyperliquid",
+          "dydx"
+        ]
+      },
+      "instrument": "perp",
+      "leverage": "2",
+      "option": null,
+      "side": "long",
+      "size": "1.5",
+      "symbol": "ETH-USD"
+    },
+    "signer_id": "test.testnet",
+    "deadline": "2025-12-31T23:59:59Z",
+    "nonce": "golden-reference-001"
+  },
+  "canonicalization": {
+    "algorithm": "JSON.stringify",
+    "note": "Uses Node.js JSON.stringify - RFC 8785 compliance pending",
+    "hash": "c7f06ff7b83a739dcee8b628adc0e48acaafc5f4afed7aa302e5042764597569"
+  },
+  "validation": {
+    "status": "valid",
+    "schema_version": "2.0.0",
+    "abi_hash": "67e4874cb41e405be0d3e532341adace4137cb30d59b42cb480823624bb4503f",
+    "errors": []
+  },
+  "live_integration": {
+    "contract_call": "validate_v2_intent",
+    "method_params": "base64-encoded-intent",
+    "expected_response": "success",
+    "testnet_rpc": "https://rpc.testnet.near.org"
+  },
+  "breaking_changes": {
+    "from_v1": [
+      "removed chain_id field",
+      "added required derivatives.collateral object",
+      "added required derivatives.constraints object",
+      "different canonical hash due to field changes"
+    ],
+    "migration_required": true,
+    "hash_incompatible": true
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "perp",
+    "symbol": "ETH-USD",
+    "side": "long",
+    "size": "1.5",
+    "collateral": {
+      "token": "USDC",
+      "chain": "near"
+    }
+  },
+  "signer_id": "alice.testnet",
+  "deadline": "2024-12-31T23:59:59Z",
+  "nonce": "test-minimal-perp-001"
+}

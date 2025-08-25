@@ -1,0 +1,1 @@
+{"deadline":"2024-12-31T23:59:59Z","derivatives":{"collateral":{"chain":"near","token":"USDC"},"constraints":{"max_fee_bps":30,"max_funding_bps_8h":50,"max_slippage_bps":100,"venue_allowlist":[]},"instrument":"perp","leverage":"2","option":null,"side":"long","size":"1","symbol":"ETH-USD"},"intent_type":"derivatives","nonce":"café-001","signer_id":"café.testnet","version":"1.0.0"}

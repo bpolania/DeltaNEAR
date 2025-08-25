@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "intent_type": "derivatives",
+  "derivatives": {
+    "instrument": "perp",
+    "symbol": "ETH-USD",
+    "side": "long",
+    "size": "1",
+    "leverage": "2",
+    "collateral": {
+      "token": "USDC",
+      "chain": "near"
+    }
+  },
+  "signer_id": "café.testnet",
+  "deadline": "2024-12-31T23:59:59Z",
+  "nonce": "café-001"
+}

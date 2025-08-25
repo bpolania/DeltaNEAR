@@ -1,3 +1,6 @@
 packages:
-  - 'services/*'
-  - 'proto'
+  - services/*
+  - proto
+
+overrides:
+  '@deltanear/proto': link:proto

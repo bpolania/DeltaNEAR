@@ -1,0 +1,9 @@
+{
+  "sha256": "6115e1c44e77f05a698d310690689711bd20532d23592beb518de82e4b8348f2",
+  "intent_hash": "789012345678901234567890123456789012345678901234567890123456def",
+  "manifest_hash": "4d1b6241b61316237252e7a03d4c406daf856397a898ce2638084a18c37a06cc",
+  "byte_length": 279,
+  "normalization_notes": [
+    "Successful quote response"
+  ]
+}
