@@ -17,12 +17,16 @@ describe('RiskManager', () => {
         side: 'long',
         size: '10',
         leverage: '5',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -52,12 +56,16 @@ describe('RiskManager', () => {
         side: 'long',
         size: '100',
         leverage: '10',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -82,12 +90,16 @@ describe('RiskManager', () => {
         side: 'long',
         size: '10',
         leverage: '5',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 10,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 10,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -113,12 +125,16 @@ describe('RiskManager', () => {
         side: 'long',
         size: '1',
         leverage: '10',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -146,12 +162,16 @@ describe('RiskManager', () => {
         side: 'short',
         size: '1',
         leverage: '10',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -185,12 +205,16 @@ describe('RiskManager', () => {
           strike: '4000',
           expiry: '2024-12-31T00:00:00Z',
         },
-        max_slippage_bps: 50,
-        max_funding_bps_8h: 0,
-        max_fee_bps: 10,
-        venue_allowlist: ['lyra-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'base',
+        constraints: {
+          max_slippage_bps: 50,
+          max_funding_bps_8h: 0,
+          max_fee_bps: 10,
+          venue_allowlist: ['lyra-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'base',
+        },
       };
 
       const quote: VenueQuote = {
@@ -221,12 +245,16 @@ describe('RiskManager', () => {
           strike: '4000',
           expiry: '2024-12-31T00:00:00Z',
         },
-        max_slippage_bps: 50,
-        max_funding_bps_8h: 0,
-        max_fee_bps: 10,
-        venue_allowlist: ['lyra-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'base',
+        constraints: {
+          max_slippage_bps: 50,
+          max_funding_bps_8h: 0,
+          max_fee_bps: 10,
+          venue_allowlist: ['lyra-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'base',
+        },
       };
 
       const quote: VenueQuote = {
@@ -257,12 +285,16 @@ describe('RiskManager', () => {
           strike: '4000',
           expiry: '2024-12-31T00:00:00Z',
         },
-        max_slippage_bps: 50,
-        max_funding_bps_8h: 0,
-        max_fee_bps: 10,
-        venue_allowlist: ['lyra-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'base',
+        constraints: {
+          max_slippage_bps: 50,
+          max_funding_bps_8h: 0,
+          max_fee_bps: 10,
+          venue_allowlist: ['lyra-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'base',
+        },
       };
 
       const quote: VenueQuote = {
@@ -303,12 +335,16 @@ describe('RiskManager', () => {
           strike: '4000',
           expiry: '2024-12-31T00:00:00Z',
         },
-        max_slippage_bps: 50,
-        max_funding_bps_8h: 0,
-        max_fee_bps: 10,
-        venue_allowlist: ['lyra-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'base',
+        constraints: {
+          max_slippage_bps: 50,
+          max_funding_bps_8h: 0,
+          max_fee_bps: 10,
+          venue_allowlist: ['lyra-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'base',
+        },
       };
 
       const quote: VenueQuote = {
@@ -451,12 +487,16 @@ describe('RiskManager', () => {
         symbol: 'ETH-USD',
         side: 'long',
         size: '1',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {
@@ -481,12 +521,16 @@ describe('RiskManager', () => {
         side: 'long',
         size: '1',
         leverage: '5',
-        max_slippage_bps: 10,
-        max_funding_bps_8h: 20,
-        max_fee_bps: 5,
-        venue_allowlist: ['gmx-v2'],
-        collateral_token: 'USDC',
-        collateral_chain: 'arbitrum',
+        constraints: {
+          max_slippage_bps: 10,
+          max_funding_bps_8h: 20,
+          max_fee_bps: 5,
+          venue_allowlist: ['gmx-v2'],
+        },
+        collateral: {
+          token: 'USDC',
+          chain: 'arbitrum',
+        },
       };
 
       const quote: VenueQuote = {

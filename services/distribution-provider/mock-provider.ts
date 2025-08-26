@@ -5,7 +5,7 @@
  */
 
 import { DistributionProvider, IntentQuote, IntentStatus, ProviderConfig } from './interface';
-import { SignedIntent } from '@deltanear/proto';
+import { SignedIntent, QuoteResponse } from '@deltanear/proto';
 
 export class MockProvider implements DistributionProvider {
   private intents = new Map<string, IntentStatus>();
@@ -48,18 +48,24 @@ export class MockProvider implements DistributionProvider {
     // Generate mock quotes
     const mockQuotes: IntentQuote[] = [];
     for (let i = 0; i < this.simulateQuoteCount; i++) {
-      mockQuotes.push({
+      const quote: QuoteResponse = {
+        intent_hash,
         solver_id: `mock_solver_${i + 1}`,
         quote: {
-          solver_id: `mock_solver_${i + 1}`,
-          intent_hash,
           price: (1000 + i * 50).toString(),
-          estimated_funding_bps: 20 + i * 5,
-          fees_bps: 5 + i,
-          estimated_slippage_bps: 10 + i * 2,
+          size: '1000',
+          fee: '5',
+          expiry: new Date(Date.now() + 300000).toISOString(),
           venue: 'gmx-v2',
-          valid_until: Math.floor(Date.now() / 1000) + 300
+          chain: 'arbitrum'
         },
+        status: 'success' as const,
+        timestamp: new Date().toISOString()
+      };
+      
+      mockQuotes.push({
+        solver_id: `mock_solver_${i + 1}`,
+        quote,
         timestamp: Date.now()
       });
     }
@@ -109,7 +115,7 @@ export class MockProvider implements DistributionProvider {
           status.execution_details = {
             tx_hash: `0x${Math.random().toString(16).substr(2)}`,
             gas_used: '25000000000000',
-            final_price: quote.quote.price
+            final_price: quote.quote.quote.price
           };
         }
         this.notifySubscribers(intent_hash, status);
