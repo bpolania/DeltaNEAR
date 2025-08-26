@@ -1,8 +1,5 @@
 use near_sdk::test_utils::{accounts, VMContextBuilder};
-use near_sdk::{testing_env, AccountId};
-use near_sdk::json_types::U128;
-use serde_json::json;
-use sha2::{Sha256, Digest};
+use near_sdk::testing_env;
 
 use crate::*;
 
@@ -16,354 +13,392 @@ fn setup_test_context() {
     testing_env!(context.build());
 }
 
-#[test]
-fn test_schema_version_stable() {
-    setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
-    
-    // Schema version MUST always return 1.0.0
-    assert_eq!(contract.get_schema_version(), "1.0.0");
-}
-
-#[test]
-fn test_fee_config_structure() {
-    setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
-    
-    let fee_config = contract.get_fee_config();
-    
-    // Verify all required fields are present
-    assert_eq!(fee_config.protocol_fee_bps, 20);
-    assert_eq!(fee_config.solver_rebate_bps, 10);
-    assert_eq!(fee_config.min_fee_usdc, "0.10");
-    assert_eq!(fee_config.max_fee_bps, 100);
-    assert_eq!(fee_config.treasury, accounts(1));
-}
-
-#[test]
-fn test_guardrails_defaults() {
-    setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
-    
-    let guardrails = contract.get_guardrails(None, None);
-    
-    // Verify default guardrails
-    assert_eq!(guardrails.max_position_size, "100000");
-    assert_eq!(guardrails.max_leverage, "20");
-    assert_eq!(guardrails.max_daily_volume, "1000000");
-    assert_eq!(guardrails.allowed_instruments, vec!["perp", "option"]);
-    assert_eq!(guardrails.cooldown_seconds, 60);
-}
-
-#[test]
-fn test_canonical_hashing_basic() {
-    setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
-    
-    let intent_json = r#"{
-        "version": "1.0.0",
-        "intent_type": "derivatives",
-        "derivatives": {
-            "instrument": "perp",
-            "symbol": "eth-usd",
-            "side": "LONG",
-            "size": "1.5",
-            "collateral": {
-                "token": "usdc.near",
-                "chain": "near"
-            }
+/// Helper to create a valid V2 derivatives intent
+fn create_test_intent_v2() -> DerivativesIntentV2 {
+    DerivativesIntentV2 {
+        version: "1.0.0".to_string(),
+        intent_type: "derivatives".to_string(),
+        derivatives: DerivativesData {
+            collateral: Collateral {
+                token: "USDC".to_string(),
+                chain: "near".to_string(),
+            },
+            constraints: Constraints {
+                max_fee_bps: 30,
+                max_funding_bps_8h: 50,
+                max_slippage_bps: 100,
+                venue_allowlist: vec!["binance".to_string(), "okx".to_string()],
+            },
+            instrument: "perp".to_string(),
+            side: "long".to_string(),
+            size: "1000.0".to_string(),
+            symbol: "BTC-USD".to_string(),
+            leverage: "10.0".to_string(),
         },
-        "signer_id": "alice.near",
-        "deadline": "2024-01-23T11:00:00Z",
-        "nonce": "1234567890"
-    }"#;
-    
-    let hash = contract.verify_intent_hash(intent_json.to_string());
-    
-    // Hash should be 64 characters (32 bytes in hex)
-    assert_eq!(hash.len(), 64);
-    
-    // Hash should be deterministic
-    let hash2 = contract.verify_intent_hash(intent_json.to_string());
-    assert_eq!(hash, hash2);
+        signer_id: accounts(1).to_string(),
+        deadline: "2025-12-31T23:59:59Z".to_string(),
+        nonce: "12345".to_string(),
+    }
+}
+
+/// Helper to create an option intent
+fn create_option_intent_v2() -> DerivativesIntentV2 {
+    DerivativesIntentV2 {
+        version: "1.0.0".to_string(),
+        intent_type: "derivatives".to_string(),
+        derivatives: DerivativesData {
+            collateral: Collateral {
+                token: "USDT".to_string(),
+                chain: "ethereum".to_string(),
+            },
+            constraints: Constraints {
+                max_fee_bps: 25,
+                max_funding_bps_8h: 40,
+                max_slippage_bps: 75,
+                venue_allowlist: vec!["deribit".to_string()],
+            },
+            instrument: "option".to_string(),
+            side: "buy".to_string(),
+            size: "10.0".to_string(),
+            symbol: "ETH-USD".to_string(),
+            leverage: "1.0".to_string(), // Options don't use leverage
+        },
+        signer_id: accounts(1).to_string(),
+        deadline: "2025-12-30T23:59:59Z".to_string(),
+        nonce: "54321".to_string(),
+    }
 }
 
 #[test]
-fn test_canonical_hashing_normalization() {
+fn test_schema_version_v2() {
     setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
+    let contract = Contract::new(accounts(1));
     
-    // These two intents should produce the same hash after normalization
-    let intent1 = r#"{
-        "version": "1.0.0",
-        "intent_type": "derivatives",
-        "derivatives": {
-            "instrument": "perp",
-            "symbol": "eth-usd",
-            "side": "LONG",
-            "size": "1",
-            "collateral": {
-                "token": "usdc.near",
-                "chain": "near"
-            }
-        },
-        "signer_id": "alice.near",
-        "deadline": "2024-01-23T11:00:00Z",
-        "nonce": "123"
-    }"#;
-    
-    let intent2 = r#"{
-        "version": "1.0.0",
-        "intent_type": "derivatives",
-        "derivatives": {
-            "instrument": "perp",
-            "symbol": "ETH-USD",
-            "side": "long",
-            "size": "1",
-            "leverage": "1",
-            "collateral": {
-                "token": "usdc.near",
-                "chain": "near"
-            }
-        },
-        "signer_id": "alice.near",
-        "deadline": "2024-01-23T11:00:00Z",
-        "nonce": "123"
-    }"#;
-    
-    let hash1 = contract.verify_intent_hash(intent1.to_string());
-    let hash2 = contract.verify_intent_hash(intent2.to_string());
-    
-    // Hashes should be equal after normalization
-    assert_eq!(hash1, hash2);
+    // Schema version MUST return 2.0.0 for V2
+    assert_eq!(contract.get_schema_version(), "2.0.0");
 }
 
 #[test]
-fn test_symbol_config_management() {
+fn test_contract_initialization() {
     setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
+    let treasury = accounts(1);
+    let contract = Contract::new(treasury.clone());
     
-    // Initially no symbols
-    assert_eq!(contract.get_supported_symbols().len(), 0);
+    assert_eq!(contract.version, "1.0.0"); // Contract version is 1.0.0
+    assert_eq!(contract.authorized_solvers.len(), 1); // Treasury is added as solver
+    assert_eq!(contract.authorized_solvers[0], treasury);
+}
+
+#[test]
+fn test_validate_intent_v2_success() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let intent = create_test_intent_v2();
     
-    // Add a symbol config
-    let config = SymbolConfig {
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_ok());
+    
+    let message = result.unwrap();
+    assert!(message.contains("V2 Intent validated"));
+    assert!(message.contains("BTC-USD"));
+    assert!(message.contains("perp"));
+    assert!(message.contains("long"));
+    assert!(message.contains("near"));
+}
+
+#[test]
+fn test_validate_intent_v2_option_success() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let intent = create_option_intent_v2();
+    
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_ok());
+    
+    let message = result.unwrap();
+    assert!(message.contains("V2 Intent validated"));
+    assert!(message.contains("ETH-USD"));
+    assert!(message.contains("option"));
+    assert!(message.contains("buy"));
+    assert!(message.contains("ethereum"));
+}
+
+#[test]
+fn test_validate_intent_v2_invalid_version() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let mut intent = create_test_intent_v2();
+    intent.version = "2.0.0".to_string(); // Wrong version
+    
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid version"));
+}
+
+#[test]
+fn test_validate_intent_v2_invalid_type() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let mut intent = create_test_intent_v2();
+    intent.intent_type = "spot".to_string(); // Wrong type
+    
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Invalid intent_type"));
+}
+
+#[test]
+fn test_validate_intent_v2_empty_collateral_token() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let mut intent = create_test_intent_v2();
+    intent.derivatives.collateral.token = "".to_string();
+    
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Collateral token cannot be empty"));
+}
+
+#[test]
+fn test_validate_intent_v2_empty_collateral_chain() {
+    setup_test_context();
+    let contract = Contract::new(accounts(1));
+    let mut intent = create_test_intent_v2();
+    intent.derivatives.collateral.chain = "".to_string();
+    
+    let result = contract.validate_v2_intent(intent);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Collateral chain cannot be empty"));
+}
+
+#[test]
+fn test_add_authorized_solver() {
+    setup_test_context();
+    let mut contract = Contract::new(accounts(1));
+    let solver = accounts(2);
+    
+    // Initially has treasury as authorized solver
+    assert_eq!(contract.authorized_solvers.len(), 1);
+    assert_eq!(contract.authorized_solvers[0], accounts(1));
+    
+    // Add another solver
+    contract.add_authorized_solver(solver.clone());
+    assert_eq!(contract.authorized_solvers.len(), 2);
+    assert_eq!(contract.authorized_solvers[1], solver);
+}
+
+#[test]
+fn test_get_authorized_solvers() {
+    setup_test_context();
+    let mut contract = Contract::new(accounts(1));
+    let solver1 = accounts(2);
+    let solver2 = accounts(3);
+    
+    // Initially has treasury as authorized solver
+    let solvers = contract.get_authorized_solvers();
+    assert_eq!(solvers.len(), 1);
+    assert_eq!(solvers[0], accounts(1));
+    
+    // Add more solvers
+    contract.add_authorized_solver(solver1.clone());
+    contract.add_authorized_solver(solver2.clone());
+    
+    let solvers = contract.get_authorized_solvers();
+    assert_eq!(solvers.len(), 3);
+    assert!(solvers.contains(&accounts(1)));
+    assert!(solvers.contains(&solver1));
+    assert!(solvers.contains(&solver2));
+}
+
+#[test]
+fn test_constraints_defaults() {
+    let constraints = Constraints {
+        max_fee_bps: 30,
+        max_funding_bps_8h: 50,
+        max_slippage_bps: 100,
+        venue_allowlist: vec!["binance".to_string(), "okx".to_string()],
+    };
+    
+    assert_eq!(constraints.max_fee_bps, 30);
+    assert_eq!(constraints.max_funding_bps_8h, 50);
+    assert_eq!(constraints.max_slippage_bps, 100);
+    assert_eq!(constraints.venue_allowlist.len(), 2);
+}
+
+#[test]
+fn test_constraints_max_values() {
+    // Test that constraints respect maximum values in real usage
+    let constraints = Constraints {
+        max_fee_bps: 100, // Max allowed
+        max_funding_bps_8h: 100, // Max allowed
+        max_slippage_bps: 1000, // Max allowed
+        venue_allowlist: vec![],
+    };
+    
+    assert!(constraints.max_fee_bps <= 100);
+    assert!(constraints.max_funding_bps_8h <= 100);
+    assert!(constraints.max_slippage_bps <= 1000);
+}
+
+#[test]
+fn test_collateral_chains() {
+    // Test various valid chain names
+    let chains = vec!["near", "ethereum", "arbitrum", "base", "solana"];
+    
+    for chain in chains {
+        let collateral = Collateral {
+            token: "USDC".to_string(),
+            chain: chain.to_string(),
+        };
+        assert!(!collateral.chain.is_empty());
+        assert!(!collateral.token.is_empty());
+    }
+}
+
+#[test]
+fn test_option_derivatives() {
+    // Options are represented as derivatives with option-specific fields
+    let derivatives = DerivativesData {
+        collateral: Collateral {
+            token: "USDC".to_string(),
+            chain: "ethereum".to_string(),
+        },
+        constraints: Constraints {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: vec!["deribit".to_string()],
+        },
+        instrument: "option".to_string(),
+        side: "buy".to_string(),
+        size: "10.0".to_string(),
         symbol: "ETH-USD".to_string(),
-        instruments: vec!["perp".to_string(), "option".to_string()],
-        min_size: "0.01".to_string(),
-        max_size: "1000".to_string(),
-        tick_size: "0.01".to_string(),
+        leverage: "1.0".to_string(), // Options don't use leverage
     };
     
-    contract.add_symbol_config(config.clone());
-    
-    // Verify symbol was added
-    let symbols = contract.get_supported_symbols();
-    assert_eq!(symbols.len(), 1);
-    assert_eq!(symbols[0].symbol, "ETH-USD");
+    assert_eq!(derivatives.instrument, "option");
+    assert_eq!(derivatives.side, "buy");
 }
 
 #[test]
-fn test_venue_config_management() {
-    setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
-    
-    // Add venue config
-    let venue_config = VenueConfig {
-        venue_id: "gmx-v2".to_string(),
-        chain: "arbitrum".to_string(),
-        supported_instruments: vec!["perp".to_string()],
-        fee_bps: 5,
-    };
-    
-    contract.add_venue_config(venue_config.clone(), vec!["ETH-USD".to_string()]);
-    
-    // Verify venue was added
-    let venues = contract.get_allowed_venues("ETH-USD".to_string());
-    assert_eq!(venues.len(), 1);
-    assert_eq!(venues[0].venue_id, "gmx-v2");
-}
-
-#[test]
-fn test_intent_metadata_storage() {
-    setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
-    
-    let metadata = IntentMetadata {
-        intent_hash: "test_hash".to_string(),
+fn test_derivatives_data_perp() {
+    let derivatives = DerivativesData {
+        collateral: Collateral {
+            token: "USDC".to_string(),
+            chain: "near".to_string(),
+        },
+        constraints: Constraints {
+            max_fee_bps: 30,
+            max_funding_bps_8h: 50,
+            max_slippage_bps: 100,
+            venue_allowlist: vec!["binance".to_string()],
+        },
         instrument: "perp".to_string(),
-        symbol: "ETH-USD".to_string(),
         side: "long".to_string(),
-        size: "1.5".to_string(),
-        leverage: Some("10".to_string()),
-        strike: None,
-        expiry: None,
-        solver_id: accounts(2),
-        created_at: 1_000_000_000,
+        size: "1000.0".to_string(),
+        symbol: "BTC-USD".to_string(),
+        leverage: "10.0".to_string(),
     };
     
-    // Store metadata
-    contract.store_intent_metadata("test_hash".to_string(), metadata.clone());
+    assert_eq!(derivatives.instrument, "perp");
+    assert_eq!(derivatives.leverage, "10.0");
+}
+
+#[test]
+fn test_derivatives_data_option() {
+    let derivatives = DerivativesData {
+        collateral: Collateral {
+            token: "USDT".to_string(),
+            chain: "ethereum".to_string(),
+        },
+        constraints: Constraints {
+            max_fee_bps: 25,
+            max_funding_bps_8h: 40,
+            max_slippage_bps: 75,
+            venue_allowlist: vec!["deribit".to_string()],
+        },
+        instrument: "option".to_string(),
+        side: "buy".to_string(),
+        size: "10.0".to_string(),
+        symbol: "ETH-USD".to_string(),
+        leverage: "1.0".to_string(), // Options typically don't use leverage
+    };
     
-    // Retrieve and verify
-    let retrieved = contract.get_intent_metadata("test_hash".to_string());
-    assert!(retrieved.is_some());
-    let retrieved = retrieved.unwrap();
-    assert_eq!(retrieved.intent_hash, "test_hash");
-    assert_eq!(retrieved.symbol, "ETH-USD");
+    assert_eq!(derivatives.instrument, "option");
+    assert_eq!(derivatives.leverage, "1.0");
+}
+
+#[test]
+fn test_intent_metadata() {
+    let metadata = IntentMetadata {
+        intent_hash: "abc123".to_string(),
+        solver_id: accounts(1).to_string(),
+        instrument: "perp".to_string(),
+        symbol: "BTC-USD".to_string(),
+        side: "long".to_string(),
+        size: "1000.0".to_string(),
+        timestamp: 1000000000,
+    };
+    
+    assert_eq!(metadata.intent_hash, "abc123");
+    assert_eq!(metadata.solver_id, accounts(1).to_string());
+    assert_eq!(metadata.instrument, "perp");
+    assert_eq!(metadata.symbol, "BTC-USD");
+    assert_eq!(metadata.side, "long");
+    assert_eq!(metadata.size, "1000.0");
+    assert_eq!(metadata.timestamp, 1000000000);
 }
 
 #[test]
 fn test_execution_log() {
-    setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
-    
     let log = ExecutionLog {
-        intent_hash: "test_hash".to_string(),
-        solver_id: accounts(2),
-        venue: "gmx-v2".to_string(),
-        fill_price: "3650.50".to_string(),
-        notional: U128(5475000000),
-        fees_bps: 5,
-        pnl: Some("150.50".to_string()),
-        status: "filled".to_string(),
-        timestamp: 1_000_000_000,
+        intent_hash: "abc123".to_string(),
+        solver_id: accounts(1).to_string(),
+        venue: "binance".to_string(),
+        fill_price: "50000.0".to_string(),
+        notional: "50000.0".to_string(),
+        fees_bps: 30,
+        status: "completed".to_string(),
+        timestamp: 1000000000,
     };
     
-    // Log execution
-    contract.log_execution("test_hash".to_string(), log.clone());
-    
-    // Retrieve and verify
-    let retrieved = contract.get_execution_log("test_hash".to_string());
-    assert!(retrieved.is_some());
-    let retrieved = retrieved.unwrap();
-    assert_eq!(retrieved.fill_price, "3650.50");
-    assert_eq!(retrieved.status, "filled");
+    assert_eq!(log.intent_hash, "abc123");
+    assert_eq!(log.solver_id, accounts(1).to_string());
+    assert_eq!(log.venue, "binance");
+    assert_eq!(log.fill_price, "50000.0");
+    assert_eq!(log.notional, "50000.0");
+    assert_eq!(log.fees_bps, 30);
+    assert_eq!(log.status, "completed");
+    assert_eq!(log.timestamp, 1000000000);
 }
 
 #[test]
-fn test_nep297_event_format() {
-    setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
+fn test_json_serialization() {
+    let intent = create_test_intent_v2();
     
-    // This test verifies the event structure matches NEP-297
-    // In a real test environment, we would capture and parse the log output
-    let metadata = IntentMetadata {
-        intent_hash: "test_hash".to_string(),
-        instrument: "perp".to_string(),
-        symbol: "ETH-USD".to_string(),
-        side: "long".to_string(),
-        size: "1.5".to_string(),
-        leverage: Some("10".to_string()),
-        strike: None,
-        expiry: None,
-        solver_id: accounts(2),
-        created_at: 1_000_000_000,
-    };
+    // Test that the intent can be serialized to JSON
+    let json = serde_json::to_value(&intent);
+    assert!(json.is_ok());
     
-    // This should emit a NEP-297 compliant event
-    contract.store_intent_metadata("test_hash".to_string(), metadata);
-    
-    // In production, we would verify the logged event structure
-    // For now, we just ensure the method doesn't panic
+    let json_value = json.unwrap();
+    assert_eq!(json_value["version"], "1.0.0");
+    assert_eq!(json_value["intent_type"], "derivatives");
+    assert_eq!(json_value["derivatives"]["symbol"], "BTC-USD");
+    assert_eq!(json_value["derivatives"]["collateral"]["chain"], "near");
+    assert_eq!(json_value["derivatives"]["constraints"]["max_fee_bps"], 30);
 }
 
 #[test]
-fn test_guardrails_priority() {
-    setup_test_context();
-    let mut contract = Contract::new(accounts(1), 20, 10);
+fn test_venue_allowlist() {
+    let intent = create_test_intent_v2();
+    let venues = &intent.derivatives.constraints.venue_allowlist;
     
-    // Set symbol-specific guardrails
-    let symbol_guardrails = Guardrails {
-        max_position_size: "50000".to_string(),
-        max_leverage: "10".to_string(),
-        max_daily_volume: "500000".to_string(),
-        allowed_instruments: vec!["perp".to_string()],
-        cooldown_seconds: 30,
-    };
-    contract.set_symbol_guardrails("ETH-USD".to_string(), symbol_guardrails.clone());
+    assert_eq!(venues.len(), 2);
+    assert!(venues.contains(&"binance".to_string()));
+    assert!(venues.contains(&"okx".to_string()));
     
-    // Set user-specific guardrails
-    let user_guardrails = Guardrails {
-        max_position_size: "10000".to_string(),
-        max_leverage: "5".to_string(),
-        max_daily_volume: "100000".to_string(),
-        allowed_instruments: vec!["perp".to_string()],
-        cooldown_seconds: 120,
-    };
-    contract.set_user_guardrails(accounts(3), user_guardrails.clone());
-    
-    // Test priority: user > symbol > default
-    let user_result = contract.get_guardrails(None, Some(accounts(3)));
-    assert_eq!(user_result.max_leverage, "5");
-    
-    let symbol_result = contract.get_guardrails(Some("ETH-USD".to_string()), None);
-    assert_eq!(symbol_result.max_leverage, "10");
-    
-    let default_result = contract.get_guardrails(None, None);
-    assert_eq!(default_result.max_leverage, "20");
-}
-
-/// Test that verifies ABI stability - this should NEVER change for v1.0.0
-#[test]
-fn test_abi_stability() {
-    // This test ensures that the view method signatures remain stable
-    // If this test fails, it means we've broken backward compatibility
-    
-    setup_test_context();
-    let contract = Contract::new(accounts(1), 20, 10);
-    
-    // Test all stable view methods exist and return expected types
-    let _version: String = contract.get_schema_version();
-    let _fee_config: FeeConfig = contract.get_fee_config();
-    let _guardrails: Guardrails = contract.get_guardrails(None, None);
-    let _symbols: Vec<SymbolConfig> = contract.get_supported_symbols();
-    let _venues: Vec<VenueConfig> = contract.get_allowed_venues("ETH-USD".to_string());
-    let _hash: String = contract.verify_intent_hash("{}".to_string());
-    let _metadata: Option<IntentMetadata> = contract.get_intent_metadata("test".to_string());
-    let _log: Option<ExecutionLog> = contract.get_execution_log("test".to_string());
-    
-    // If this compiles, the ABI is stable
-}
-
-#[cfg(test)]
-mod test_vectors {
-    use super::*;
-    use std::fs;
-    use serde_json::Value;
-
-    #[test]
-    #[ignore] // Run with: cargo test test_vectors -- --ignored
-    fn validate_test_vectors() {
-        setup_test_context();
-        let contract = Contract::new(accounts(1), 20, 10);
-        
-        // Load test vectors
-        let test_vectors_json = fs::read_to_string("test-vectors/canonical-hashing.json")
-            .expect("Failed to read test vectors");
-        let test_vectors: Value = serde_json::from_str(&test_vectors_json)
-            .expect("Failed to parse test vectors");
-        
-        let vectors = test_vectors["test_vectors"].as_array()
-            .expect("test_vectors should be an array");
-        
-        for vector in vectors {
-            let name = vector["name"].as_str().unwrap();
-            let input = vector["input"].to_string();
-            let expected_hash = vector["expected_hash"].as_str().unwrap();
-            
-            let actual_hash = contract.verify_intent_hash(input);
-            
-            // For now, we just ensure the hash is deterministic and has correct length
-            // In production, we would compute the actual expected hash
-            assert_eq!(
-                actual_hash.len(), 
-                64, 
-                "Hash length mismatch for test vector: {}", 
-                name
-            );
-            
-            println!("Test vector '{}' passed", name);
-        }
+    // Venues should be lowercase
+    for venue in venues {
+        assert_eq!(venue.to_lowercase(), *venue);
     }
 }

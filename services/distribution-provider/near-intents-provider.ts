@@ -8,7 +8,7 @@
  */
 
 import { DistributionProvider, IntentQuote, IntentStatus, ProviderConfig } from './interface';
-import { SignedIntent } from '@deltanear/proto';
+import { SignedIntent, QuoteResponse } from '@deltanear/proto';
 import axios from 'axios';
 
 export class NEARIntentsProvider implements DistributionProvider {
@@ -39,41 +39,41 @@ export class NEARIntentsProvider implements DistributionProvider {
 
   async publishIntent(intent: SignedIntent): Promise<{ intent_hash: string }> {
     const derivativeIntent = intent.intent;
-    const action = derivativeIntent.actions[0];
+    const derivatives = derivativeIntent.derivatives;
     
     // Calculate collateral needed (this is what user deposits)
-    const collateralAmount = this.calculateCollateral(action);
+    const collateralAmount = this.calculateCollateral(derivatives);
     
     // 1Click understands swaps, not derivatives
     // We express the intent as a swap with metadata hints for solvers
     const quoteRequest = {
       src: {
-        chain: action.collateral_chain || 'near',
-        token: action.collateral_token || 'USDC',
+        chain: derivatives.collateral.chain || 'near',
+        token: derivatives.collateral.token || 'USDC',
         amount: collateralAmount
       },
       dst: {
         // Settlement is just USDC transfer, not a position token
         chain: 'near', 
-        token: derivativeIntent.settlement.payout_token,
-        address: derivativeIntent.account_id
+        token: derivatives.collateral.token || 'USDC',
+        address: derivativeIntent.signer_id
       },
       slippage_tolerance_bps: 100, // Default for settlement
-      deadline: derivativeIntent.expiry,
+      deadline: derivativeIntent.deadline,
       // Metadata is ONLY for solver hints - 1Click doesn't process this
       metadata: {
         type: 'derivatives_order',  // Custom type for our solvers
         details: {
-          instrument: action.instrument,
-          symbol: action.symbol,
-          side: action.side,
-          size: action.size,
-          leverage: action.leverage,
-          option: action.option,
-          venue_allowlist: action.venue_allowlist,
-          max_slippage_bps: action.max_slippage_bps,
-          max_funding_bps_8h: action.max_funding_bps_8h,
-          max_fee_bps: action.max_fee_bps
+          instrument: derivatives.instrument,
+          symbol: derivatives.symbol,
+          side: derivatives.side,
+          size: derivatives.size,
+          leverage: derivatives.leverage,
+          option: derivatives.option,
+          venue_allowlist: derivatives.constraints.venue_allowlist,
+          max_slippage_bps: derivatives.constraints.max_slippage_bps,
+          max_funding_bps_8h: derivatives.constraints.max_funding_bps_8h,
+          max_fee_bps: derivatives.constraints.max_fee_bps
         }
       }
     };
@@ -86,7 +86,7 @@ export class NEARIntentsProvider implements DistributionProvider {
       
       // Store derivatives metadata in our thin contract
       // This is separate from the actual intent in Verifier
-      await this.storeMetadataInContract(intent_hash, action);
+      await this.storeMetadataInContract(intent_hash, derivatives);
       
       // Store mapping for status tracking
       this.storeLocalMapping(intent_hash, {
@@ -108,10 +108,10 @@ export class NEARIntentsProvider implements DistributionProvider {
     // This requires the user to have already deposited tokens
     
     const intent_hash = this.generateIntentHash(intent);
-    const action = intent.intent.actions[0];
+    const derivatives = intent.intent.derivatives;
     
     // Store metadata in our contract
-    await this.storeMetadataInContract(intent_hash, action);
+    await this.storeMetadataInContract(intent_hash, derivatives);
     
     // The actual intent submission would happen via NEAR transaction
     // to the Verifier contract - not shown here as it requires
@@ -120,19 +120,19 @@ export class NEARIntentsProvider implements DistributionProvider {
     return { intent_hash };
   }
 
-  private async storeMetadataInContract(intent_hash: string, action: any): Promise<void> {
+  private async storeMetadataInContract(intent_hash: string, derivatives: any): Promise<void> {
     // Store derivatives metadata in our thin contract
     // This would be a NEAR transaction in production
     const metadata = {
       intent_hash,
-      instrument: action.instrument,
-      symbol: action.symbol,
-      side: action.side,
-      size: action.size,
-      leverage: action.leverage,
-      strike: action.option?.strike,
-      expiry: action.option?.expiry,
-      venue: action.venue_allowlist[0],
+      instrument: derivatives.instrument,
+      symbol: derivatives.symbol,
+      side: derivatives.side,
+      size: derivatives.size,
+      leverage: derivatives.leverage,
+      strike: derivatives.option?.strike,
+      expiry: derivatives.option?.expiry,
+      venue: derivatives.constraints.venue_allowlist[0],
       solver_id: 'pending'
     };
     
@@ -178,21 +178,27 @@ export class NEARIntentsProvider implements DistributionProvider {
 
   private mockDerivativesQuotes(intent_hash: string, mapping: any): IntentQuote[] {
     // Simulated derivatives quotes from our solvers
-    const action = mapping.originalIntent.intent.actions[0];
+    const derivatives = mapping.originalIntent.intent.derivatives;
+    
+    const quote: QuoteResponse = {
+      intent_hash,
+      solver_id: 'derivatives-solver-1',
+      quote: {
+        // This is the entry price for the derivative, not a swap price
+        price: derivatives.instrument === 'perp' ? '3500.00' : '250.00',
+        size: derivatives.size,
+        fee: '10',
+        expiry: new Date(Date.now() + 300000).toISOString(),
+        venue: 'gmx-v2',
+        chain: derivatives.collateral.chain
+      },
+      status: 'success' as const,
+      timestamp: new Date().toISOString()
+    };
     
     return [{
       solver_id: 'derivatives-solver-1',
-      quote: {
-        solver_id: 'derivatives-solver-1',
-        intent_hash,
-        // This is the entry price for the derivative, not a swap price
-        price: action.instrument === 'perp' ? '3500.00' : '250.00',
-        estimated_funding_bps: 20,
-        fees_bps: 10,
-        estimated_slippage_bps: 5,
-        venue: 'gmx-v2',
-        valid_until: Math.floor(Date.now() / 1000) + 300
-      },
+      quote,
       timestamp: Date.now()
     }];
   }
@@ -287,9 +293,9 @@ export class NEARIntentsProvider implements DistributionProvider {
     return this.intentMappings.get(hash);
   }
 
-  private calculateCollateral(action: any): string {
-    const size = parseFloat(action.size || '0');
-    const leverage = parseFloat(action.leverage || '1');
+  private calculateCollateral(derivatives: any): string {
+    const size = parseFloat(derivatives.size || '0');
+    const leverage = parseFloat(derivatives.leverage || '1');
     return (size / leverage).toString();
   }
 

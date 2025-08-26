@@ -1,9 +1,7 @@
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
-use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{env, log, near, AccountId, PanicOnDefault};
+use near_sdk::{log, near, AccountId, PanicOnDefault};
 use schemars::JsonSchema;
-use std::collections::HashMap;
 
 // DeltaNEAR V2 Schema Contract - Production Ready
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, JsonSchema)]
@@ -193,9 +191,9 @@ impl Contract {
     }
 }
 
-// Tests temporarily disabled for CI - need to be updated for V2 schema
-// #[cfg(test)]
-// mod tests;
+// Tests updated for V2 schema
+#[cfg(test)]
+mod tests;
 
 // #[cfg(test)]
 // mod canonicalization;

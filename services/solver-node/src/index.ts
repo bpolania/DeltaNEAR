@@ -19,6 +19,7 @@ import { LyraV2Adapter } from './adapters/lyra-v2';
 import { ChainSignatures } from './chain-signatures';
 import { VerifierCompatibleSettlement } from './settlement';
 import { RiskManager } from './risk-manager';
+import { IntentStore } from './intent-store';
 
 const logger = pino({
   transport: {
@@ -42,6 +43,7 @@ export class SolverNode {
   private adapters: Map<string, VenueAdapter> = new Map();
   private chainSigner: ChainSignatures;
   private riskManager: RiskManager;
+  private intentStore: IntentStore;
   private activeExecutions: Map<string, ExecutionRequest> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
@@ -50,6 +52,7 @@ export class SolverNode {
     this.config = config;
     this.chainSigner = new ChainSignatures(config.near_private_key);
     this.riskManager = new RiskManager(config.max_exposure);
+    this.intentStore = new IntentStore();
     this.initializeAdapters();
   }
 
@@ -159,6 +162,9 @@ export class SolverNode {
     try {
       logger.info({ intent_hash: request.intent_hash }, 'Processing quote request');
       
+      // Store the intent for later execution
+      this.intentStore.store(request.intent_hash, request.intent);
+      
       const action = request.intent.derivatives;
       const bestQuote = await this.findBestQuote(action);
       
@@ -249,23 +255,13 @@ export class SolverNode {
 
       this.activeExecutions.set(request.intent_hash, request);
       
-      // TODO: In a real system, look up the intent by request.intent_hash
-      // For now, create a mock derivatives object for compilation
-      const action = {
-        collateral: { chain: 'near', token: 'usdc.fakes' },
-        constraints: { 
-          venue_allowlist: ['gmx-v2'], 
-          max_funding_bps_8h: 50,
-          max_fee_bps: 30,
-          max_slippage_bps: 100
-        },
-        instrument: 'perp' as const,
-        size: '1000',
-        symbol: 'BTC',
-        side: 'long' as const,
-        leverage: '10',
-        option: null
-      };
+      // Look up the stored intent
+      const storedIntent = this.intentStore.get(request.intent_hash);
+      if (!storedIntent) {
+        throw new Error(`Intent not found for hash: ${request.intent_hash}`);
+      }
+      
+      const action = storedIntent.derivatives;
       const adapter = this.adapters.get(action.constraints.venue_allowlist[0]);
       
       if (!adapter) {
