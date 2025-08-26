@@ -1,8 +1,8 @@
 # DeltaNEAR V2.0.0 - Cross-Chain Derivatives Execution via NEAR Intents
 
-A production-ready implementation combining NEAR Intents with cross-chain execution for perpetuals and options trading through a competitive solver network. 
+An experimental implementation of NEAR Intents for perpetuals and options trading. 
 
-## 🚀 V2.0.0 Release - Breaking Changes
+## V2.0.0 Release - Breaking Changes
 
 This version introduces significant schema improvements for better cross-chain support and risk management:
 
@@ -209,13 +209,6 @@ let version = contract.get_schema_version();
 let result = contract.validate_v2_intent(intent);
 ```
 
-## Testing Status
-
-- ✅ **Contract Tests**: 20/20 passing
-- ✅ **TypeScript Compilation**: All services compile
-- ✅ **Proto Tests**: 33/33 passing
-- ✅ **Integration Tests**: Full V2 flow tested
-
 ## Contract Addresses
 
 - **Testnet V2**: `deltanear-v2-1756106334.testnet`
@@ -226,10 +219,6 @@ let result = contract.validate_v2_intent(intent);
 
 Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
-## Security
-
-For security concerns, please email security@deltanear.xyz
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
@@ -238,4 +227,3 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 - Documentation: [docs/INDEX.md](./docs/INDEX.md)
 - Issues: [GitHub Issues](https://github.com/yourusername/DeltaNEAR/issues)
-- Discord: [Join our community](https://discord.gg/deltanear)
